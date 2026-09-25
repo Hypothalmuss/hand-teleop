@@ -10,4 +10,9 @@ install(DIRECTORY launch rviz DESTINATION share/${PROJECT_NAME})
 # The repo-level config/ directory is the single source of truth for every node.
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../config/ DESTINATION share/${PROJECT_NAME}/config)
 
+if(BUILD_TESTING)
+  find_package(launch_testing_ament_cmake REQUIRED)
+  add_launch_test(test/test_teleop_chain_launch.py TIMEOUT 120)
+endif()
+
 ament_package()

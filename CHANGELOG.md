@@ -1,5 +1,10 @@
 # Changelog
 
+## Phase 6: Integration (software complete; operator runs pending)
+- `teleop.launch.py` (sim, hand input webcam/video/fake, mapper, IK, optional console window and RViz), `keyboard_console`, `fake_hand`, sim `demo_view`, shared `SuccessDetector` and seed lists.
+- Scripts: `measure_latency.py`, `teleop_benchmark.py`, `record_demo_video.py/.sh`; full-chain integration launch test.
+- Results: 62 tests green (5 clip tests skipped); synthetic-input chain: startup 0.8 s, capture→command p50 30 ms, tracking 1.2–1.6 mm. Live latency, benchmark and demo video wait for webcam sessions.
+
 ## Phase 5: Differential IK controller (C++)
 - `diff_ik_controller`: `Kinematics` (MuJoCo), `DiffIk` (DLS + truncated-pinv nullspace posture, singularity damping, joint-speed/limit handling, workspace guard, target-velocity feedforward), `EstopLatch`, 200 Hz node with latency samples and diagnostics.
 - gtests (Jacobian vs FD, 50/50 targets, wrist singularity, guard, latch) and launch tests (square, e-stop); `ik_sim.launch.py`, `scripts/square_tracking.py`.

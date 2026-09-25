@@ -176,3 +176,35 @@ def test_scene_builds_to_temp_dir():
         path.write_text(spec.to_xml())
         m = mujoco.MjModel.from_xml_path(str(path))
         assert m.nu == 7
+
+
+def test_success_detector_conditions_and_hold():
+    from ur5e_2f85_mujoco.task import SuccessDetector
+
+    task = load_config("task.yaml")
+    det = SuccessDetector(task)
+    tgt = np.array(task["target"]["default_pos"])
+    on = np.array([tgt[0] + 0.01, tgt[1], task["cube"]["half_size"]])
+    s = task["success"]
+    # each condition alone blocks success
+    for cube, ap in [(on + [s["xy_tol"] + 0.01, 0, 0], 1.0),
+                     (on + [0, 0, s["z_max"]], 1.0),
+                     (on, s["gripper_min"] - 0.05)]:
+        det.reset()
+        assert not any(det.update(k * 0.05, cube, tgt, ap) for k in range(40))
+    # all conditions: success only after hold_s, and a break restarts the hold
+    det.reset()
+    flags = [det.update(k * 0.05, on, tgt, 1.0) for k in range(30)]
+    first = flags.index(True)
+    assert first * 0.05 == pytest.approx(s["hold_s"])
+    assert not det.update(1.6, on, tgt, 0.0)
+    assert not det.update(1.65, on, tgt, 1.0)
+
+
+def test_seed_lists_disjoint():
+    from ur5e_2f85_mujoco.config import find_config_dir
+    from ur5e_2f85_mujoco.task import load_seeds
+
+    d = find_config_dir()
+    train, ev = load_seeds(d / "seeds_train.txt"), load_seeds(d / "seeds_eval.txt")
+    assert len(train) == 200 and len(ev) == 100 and not set(train) & set(ev)

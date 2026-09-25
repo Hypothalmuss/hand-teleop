@@ -21,3 +21,6 @@
 - Phase 5: post-e-stop drift is measured from the rest pose after braking (joint speeds < 1e-3 rad/s for 100 ms), and braking distance is reported separately. Stopping from 0.1 m/s teleop takes 0.2–1.6 mrad of travel with the Menagerie servo gains (one 10 ms tick at 0.3 rad/s alone is 3 mrad), so a 1e-3 bound from the stop instant is physically unreachable. Hold drift: 1.9e-4 rad.
 - Phase 5: safety fix. An e-stop drops `engaged`, so after /estop/clear the arm moves only on a fresh engage edge (the first version resumed chasing the stale target). Targets are ignored while stopped.
 - Phase 5: the e-stop freezes at the measured joints extrapolated by their measured velocity over the joint-state age (≤ 10 ms), which is still "q_cmd = q_measured at that instant".
+- Phase 6: hand_tracker offline mode derives time from a continuous frame counter (frames / fps). CAP_PROP_POS_MSEC misbehaves after a loop seek: pacing broke (45 fps) and timestamps went backwards, which would stall the filters.
+- Phase 6: hand_tracker subscribes to /clock best-effort, matching the sim's publisher; the reliable subscription never received sim time for the overlay.
+- Phase 6: tuning pass (One Euro beta, mapping gains, Kp_pos, λ) is pending live webcam sessions. Config values are still the plan defaults, apart from the documented phase 1–5 changes above.

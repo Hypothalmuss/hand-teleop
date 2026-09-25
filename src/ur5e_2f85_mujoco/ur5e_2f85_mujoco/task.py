@@ -181,3 +181,42 @@ def cube_pose(data: mujoco.MjData, idx: SceneIndex) -> tuple[np.ndarray, np.ndar
 
 def cube_speed(data: mujoco.MjData, idx: SceneIndex) -> float:
     return float(np.linalg.norm(data.qvel[idx.cube_dof:idx.cube_dof + 3]))
+
+
+def load_seeds(path) -> list[int]:
+    with open(path) as f:
+        return [int(line) for line in f if line.strip() and not line.startswith("#")]
+
+
+class SuccessDetector:
+    """Task success: cube centre within ``xy_tol`` of the target centre, cube centre below
+    ``z_max``, gripper aperture above ``gripper_min``, all held for ``hold_s`` seconds.
+
+    Shared by the recorder, the teleop benchmark and the headless env (import, never copy).
+    """
+
+    def __init__(self, task: dict):
+        s = task["success"]
+        self.xy_tol, self.z_max = float(s["xy_tol"]), float(s["z_max"])
+        self.gripper_min, self.hold_s = float(s["gripper_min"]), float(s["hold_s"])
+        self.reset()
+
+    def reset(self) -> None:
+        self._since = None
+        self.success = False
+
+    @staticmethod
+    def conditions(cube_pos, target_pos, aperture, xy_tol, z_max, gripper_min) -> dict:
+        d = float(np.hypot(cube_pos[0] - target_pos[0], cube_pos[1] - target_pos[1]))
+        return {"xy": d < xy_tol, "z": float(cube_pos[2]) < z_max,
+                "gripper": float(aperture) > gripper_min}
+
+    def update(self, t: float, cube_pos, target_pos, aperture: float) -> bool:
+        ok = all(self.conditions(cube_pos, target_pos, aperture, self.xy_tol, self.z_max,
+                                 self.gripper_min).values())
+        if not ok:
+            self._since = None
+        elif self._since is None:
+            self._since = t
+        self.success = ok and t - self._since >= self.hold_s - 1e-9
+        return self.success

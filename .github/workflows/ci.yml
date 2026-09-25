@@ -32,7 +32,7 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           source install/setup.bash
-          colcon test --event-handlers console_direct+
+          colcon test --executor sequential --event-handlers console_direct+
           colcon test-result --verbose
       - name: pytest (ROS-free packages)
         shell: bash

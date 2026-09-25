@@ -74,6 +74,7 @@ class MujocoSim(Node):
         self.declare_parameter("render", True)
         self.declare_parameter("seed", 0)
         self.declare_parameter("rt_factor", 1.0)  # >1 runs faster than real time (tests)
+        self.declare_parameter("demo_view", False)  # extra 640x480 free-camera view for videos
         cfg_dir = find_config_dir(self.get_parameter("config_dir").value or None)
         self.rates = load_config("rates.yaml", cfg_dir)
         self.task = load_config("task.yaml", cfg_dir)
@@ -104,6 +105,9 @@ class MujocoSim(Node):
             Clock, "sim/clock", QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
         self.pub_img = {c: self.create_publisher(Image, f"sim/{c}/image", 2)
                         for c in self.names["cameras"]}
+        self.demo_view = bool(self.get_parameter("demo_view").value)
+        if self.demo_view:
+            self.pub_img["demo"] = self.create_publisher(Image, "sim/demo/image", 2)
         self.create_subscription(JointCommand, "arm/joint_command", self._on_command, 10)
         self.create_service(ResetEpisode, "sim/reset", self._on_reset)
         self.tf = TransformBroadcaster(self)
@@ -247,6 +251,10 @@ class MujocoSim(Node):
         os.environ.setdefault("MUJOCO_GL", "egl")
         size = 256
         renderer = mujoco.Renderer(self.model, size, size)
+        demo = mujoco.Renderer(self.model, 480, 640) if self.demo_view else None
+        demo_cam = mujoco.MjvCamera()
+        demo_cam.lookat[:] = [0.35, 0.0, 0.2]
+        demo_cam.distance, demo_cam.azimuth, demo_cam.elevation = 1.5, 150.0, -25.0
         rdata = mujoco.MjData(self.model)
         cams = list(self.names["cameras"])
         while self.running and rclpy.ok():
@@ -263,6 +271,9 @@ class MujocoSim(Node):
             for cam in cams:
                 renderer.update_scene(rdata, cam)
                 images[cam] = renderer.render()
+            if demo is not None:
+                demo.update_scene(rdata, demo_cam)
+                images["demo"] = demo.render()
             self.render_ms.append((time.perf_counter() - t_start) * 1e3)
             if len(self.render_ms) >= 300:
                 ms = np.array(self.render_ms)
@@ -282,6 +293,8 @@ class MujocoSim(Node):
                 msg.data = array.array("B", img.tobytes())
                 self.pub_img[cam].publish(msg)
         renderer.close()
+        if demo is not None:
+            demo.close()
 
     def destroy_node(self):
         self.running = False

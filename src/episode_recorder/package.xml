@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>episode_recorder</name>
+  <version>0.1.0</version>
+  <description>Keyboard console (e-stop, resets, episodes) and the LeRobotDataset episode recorder.</description>
+  <maintainer email="roboticai@eagleprojects.tn">robotic</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>hand_teleop_msgs</exec_depend>
+  <exec_depend>ur5e_2f85_mujoco</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -18,6 +18,7 @@ import cv2
 import numpy as np
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from rosgraph_msgs.msg import Clock
 from sensor_msgs.msg import Image
 
@@ -78,7 +79,9 @@ class HandTrackerNode(Node):
             if self.publish_raw else None
         self.pub_img = self.create_publisher(Image, "hand/debug_image", 2)
         self.sim_time = None
-        self.create_subscription(Clock, "/clock", self._on_clock, 1)
+        # /clock (remapped to /sim/clock) is published best-effort.
+        self.create_subscription(Clock, "/clock", self._on_clock, QoSProfile(
+            depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
 
         self.latency_ms = deque(maxlen=300)
         self.fps = 0.0
@@ -100,18 +103,20 @@ class HandTrackerNode(Node):
 
     def _loop(self) -> None:
         last_wall = None
-        video_t0 = None
+        n_frames = 0
+        file_fps = self.cap.get(cv2.CAP_PROP_FPS) or self.rates["webcam"]
         wall_t0 = time.monotonic()
         while self.running and rclpy.ok():
             ok, frame = self._read()
             if not ok:
                 self.get_logger().info("video finished" if self.video else "camera read failed")
                 break
-            if self.video:  # file timestamps drive filters and MediaPipe; pace in real time
-                t = self.cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-                if video_t0 is None or t < video_t0:
-                    video_t0, wall_t0 = t, time.monotonic()
-                delay = (t - video_t0) - (time.monotonic() - wall_t0)
+            if self.video:
+                # Continuous file time (frame count / fps) drives filters and MediaPipe, also
+                # across loops; pace playback in real time.
+                t = n_frames / file_fps
+                n_frames += 1
+                delay = t - (time.monotonic() - wall_t0)
                 if delay > 0:
                     time.sleep(delay)  # the frame "arrives" now
             else:
