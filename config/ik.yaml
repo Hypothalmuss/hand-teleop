@@ -15,3 +15,5 @@ q_home: [3.14159265, -1.5708, 1.5708, -1.5708, -1.5708, 0.0]
 # simulator servo (JointServo, shared by mujoco_sim and the headless env)
 velocity_feedforward: true
 ff_v_max: 3.0             # rad/s, clip on the command-derived reference velocity
+# Cartesian target-velocity feedforward (finite difference of the 30 Hz targets)
+target_velocity_ff: true

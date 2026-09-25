@@ -1,0 +1,9 @@
+$ colcon test --packages-select diff_ik_controller   (gtest + launch_testing)
+[OK] JacobianMatchesFiniteDifferences      100 configs, max |J - J_fd| < 1e-5
+[OK] ReachesRandomTargetsFromHome          50/50 targets: < 2 mm and < 1 deg within 3 s, limits and 1 rad/s respected
+[OK] BoundedNearWristSingularity           wrist_2 = 0: |dq| <= 1 rad/s, 6-D task error non-increasing, no NaN
+[OK] WorkspaceGuardKeepsTcpInGrownBox
+[OK] EstopLatch.LatchesAndClears
+square tracking RMS 3.81 mm (max 7.33 mm, 750 samples); LatencySample 30.0 Hz
+e-stop: command change 0.00e+00 rad; braking 1.95e-04 rad (at rest after 451 ms); hold drift 1.92e-04 rad; resync error 4.34e-10
+Summary: 25 tests, 0 errors, 0 failures, 0 skipped

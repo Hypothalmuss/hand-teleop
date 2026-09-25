@@ -13,6 +13,9 @@
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>mujoco_sim_ros</exec_depend>
+  <exec_depend>diff_ik_controller</exec_depend>
+  <exec_depend>hand_tracker</exec_depend>
+  <exec_depend>teleop_mapper</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -1,5 +1,10 @@
 # Changelog
 
+## Phase 5: Differential IK controller (C++)
+- `diff_ik_controller`: `Kinematics` (MuJoCo), `DiffIk` (DLS + truncated-pinv nullspace posture, singularity damping, joint-speed/limit handling, workspace guard, target-velocity feedforward), `EstopLatch`, 200 Hz node with latency samples and diagnostics.
+- gtests (Jacobian vs FD, 50/50 targets, wrist singularity, guard, latch) and launch tests (square, e-stop); `ik_sim.launch.py`, `scripts/square_tracking.py`.
+- Results: square RMS 3.8 mm at 0.1 m/s, LatencySample 30 Hz, hold drift 1.9e-4 rad (`results/phase5_*`).
+
 ## Phase 4: Teleop mapping node
 - `teleop_mapper` node: open-palm/fist clutch with relative re-anchoring, 0.3 s absent hold, e-stop, 0.5 m/s target speed limit, pinch→gripper with a 2/s rate limit, RViz marker.
 - Pure `mapping.py` plus `scripts/calibrate_workspace.py` (9 poses, about 30 s).
