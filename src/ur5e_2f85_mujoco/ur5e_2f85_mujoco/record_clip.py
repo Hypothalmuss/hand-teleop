@@ -18,7 +18,7 @@ import numpy as np  # noqa: E402
 from . import load_model, load_model_names  # noqa: E402
 from .kinematics import Kinematics  # noqa: E402
 from .scripted import ScriptedController  # noqa: E402
-from .task import SceneIndex, apply_joint_command, reset_episode  # noqa: E402
+from .task import SceneIndex, make_servo, reset_episode  # noqa: E402
 from .trials import load_config  # noqa: E402
 
 FPS = 30
@@ -27,6 +27,8 @@ W, H = 960, 540
 
 def run_pick_place(model, data, idx, kin, task, rates, seed, on_tick=None) -> dict:
     ep = reset_episode(model, data, idx, task, seed)
+    servo = make_servo(model, idx, rates, load_config("ik.yaml"))
+    servo.reset(data.ctrl[idx.arm_act].copy())
     ctl = ScriptedController(kin)
     cube_yaw = 2 * np.arctan2(ep["cube_quat"][3], ep["cube_quat"][0])
     ctl.plan_pick_place(data.site_xpos[idx.tcp_site].copy(), ep["cube_pos"], cube_yaw,
@@ -35,7 +37,8 @@ def run_pick_place(model, data, idx, kin, task, rates, seed, on_tick=None) -> di
     dt = steps * model.opt.timestep
     for k in range(int(np.ceil((ctl.duration + 0.5) / dt))):
         q, grip, label = ctl.command(k * dt)
-        apply_joint_command(data, idx, q, grip, None, None)
+        servo.set_command(q, grip)
+        servo.tick(data)
         for _ in range(steps):
             mujoco.mj_step(model, data)
         if on_tick:

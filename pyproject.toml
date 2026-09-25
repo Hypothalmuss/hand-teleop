@@ -7,3 +7,9 @@ extend-exclude = ["third_party", "build", "install", "log"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "hand_teleop_msgs", "ur5e_2f85_mujoco", "mujoco_sim_ros", "hand_tracker", "teleop_mapper",
+  "episode_recorder", "policy_runner", "hand_teleop_bringup",
+]

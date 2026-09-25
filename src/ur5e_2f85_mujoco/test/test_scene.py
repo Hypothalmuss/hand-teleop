@@ -12,6 +12,8 @@ from pathlib import Path  # noqa: E402
 import mujoco  # noqa: E402
 import numpy as np  # noqa: E402
 import pytest  # noqa: E402
+
+from ur5e_2f85_mujoco import load_model, load_model_names, scene_path  # noqa: E402
 from ur5e_2f85_mujoco.build_scene import (  # noqa: E402
     add_home_keyframe,
     build_spec,
@@ -20,8 +22,6 @@ from ur5e_2f85_mujoco.build_scene import (  # noqa: E402
 from ur5e_2f85_mujoco.kinematics import Kinematics  # noqa: E402
 from ur5e_2f85_mujoco.task import SceneIndex, reset_episode  # noqa: E402
 from ur5e_2f85_mujoco.trials import load_config, run_grasp_trial  # noqa: E402
-
-from ur5e_2f85_mujoco import load_model, load_model_names, scene_path  # noqa: E402
 
 
 @pytest.fixture(scope="module")

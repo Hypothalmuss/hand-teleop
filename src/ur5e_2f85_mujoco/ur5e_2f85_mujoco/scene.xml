@@ -7,6 +7,7 @@
 
   <visual>
     <global offwidth="1280" offheight="960"/>
+    <quality shadowsize="2048"/>
     <headlight ambient="0.3 0.3 0.3" specular="0 0 0"/>
   </visual>
 

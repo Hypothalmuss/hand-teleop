@@ -7,23 +7,17 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ProcessPoolExecutor
-from pathlib import Path
 
 import mujoco
 import numpy as np
-import yaml
 
 from . import load_model, load_model_names
+from .config import load_config
 from .kinematics import Kinematics
 from .scripted import ScriptedController, ScriptParams
-from .task import SceneIndex, apply_joint_command, cube_pose, cube_speed, reset_episode
+from .task import SceneIndex, cube_pose, cube_speed, make_servo, reset_episode
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-
-
-def load_config(name: str) -> dict:
-    with open(REPO_ROOT / "config" / name) as f:
-        return yaml.safe_load(f)
+__all__ = ["load_config", "run_grasp_trial"]
 
 
 def run_grasp_trial(seed: int, task: dict | None = None, rates: dict | None = None,
@@ -39,6 +33,8 @@ def run_grasp_trial(seed: int, task: dict | None = None, rates: dict | None = No
     ctl = ScriptedController(kin, params or ScriptParams())
 
     ep = reset_episode(model, data, idx, task, seed)
+    servo = make_servo(model, idx, rates, load_config("ik.yaml"))
+    servo.reset(data.ctrl[idx.arm_act].copy())
     cube_yaw = 2 * np.arctan2(ep["cube_quat"][3], ep["cube_quat"][0])
     ctl.plan_grasp_lift(data.site_xpos[idx.tcp_site].copy(), ep["cube_pos"], cube_yaw)
 
@@ -49,7 +45,8 @@ def run_grasp_trial(seed: int, task: dict | None = None, rates: dict | None = No
     rel_hold = []  # cube position relative to the TCP during the hold (slip)
     for k in range(n_ticks):
         q, grip, label = ctl.command(k * dt_tick)
-        apply_joint_command(data, idx, q, grip, None, None)
+        servo.set_command(q, grip)
+        servo.tick(data)
         for _ in range(steps_per_tick):
             mujoco.mj_step(model, data)
         if label == "hold":

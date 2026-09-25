@@ -121,7 +121,7 @@ def build_spec(task: dict, out_dir: Path = PKG_DIR) -> mujoco.MjSpec:
     arm.visual.headlight.specular = [0, 0, 0]
     arm.visual.global_.offwidth = 1280
     arm.visual.global_.offheight = 960
-    arm.visual.quality.shadowsize = 4096
+    arm.visual.quality.shadowsize = 2048
     arm.add_texture(name="skybox", type=mujoco.mjtTexture.mjTEXTURE_SKYBOX,
                     builtin=mujoco.mjtBuiltin.mjBUILTIN_GRADIENT, rgb1=[0.3, 0.5, 0.7],
                     rgb2=[0, 0, 0], width=512, height=3072)
@@ -206,6 +206,7 @@ def write_model_names(model: mujoco.MjModel, path: Path, q_home) -> dict:
         "arm_actuators": arm_joints,
         "gripper_actuator": grip_act,
         "gripper_joint": drv.name,
+        "ros_gripper_joint": "finger_joint",  # name used in /joint_states (Robotiq URDF)
         "gripper_joint_range": [float(v) for v in model.jnt_range[drv.id]],
         "gripper_ctrl_range": [float(v) for v in model.actuator_ctrlrange[6]],
         "gripper_cmd_to_ctrl": "ctrl = (1 - cmd) * ctrl_max   # cmd 1 = open, 0 = closed",

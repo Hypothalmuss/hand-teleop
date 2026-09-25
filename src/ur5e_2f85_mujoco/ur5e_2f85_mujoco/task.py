@@ -100,21 +100,79 @@ def reset_episode(model: mujoco.MjModel, data: mujoco.MjData, idx: SceneIndex, t
             "seed": seed}
 
 
-def apply_joint_command(data: mujoco.MjData, idx: SceneIndex, positions: np.ndarray,
-                        gripper: float, prev_cmd: np.ndarray | None,
-                        max_step: float | None) -> tuple[np.ndarray, bool]:
-    """Clamp to joint limits and a max per-tick step, then write ctrl.
+class JointServo:
+    """Applies joint commands once per control tick, like a UR ``servoj`` driver.
 
-    Returns the applied arm command and whether any clamping happened.
+    1. clamp the command to the joint limits and to ``max_step`` per tick,
+    2. derive a reference velocity from the command stream (new command vs the previous new
+       command, divided by the ticks between them; zeroed when commands stop),
+    3. write ``ctrl = q_cmd + (kv / kp) * v_ref``. The Menagerie position servos have
+       ``tau = kp (ctrl - q) - kv qdot``; without the feedforward they lag by
+       ``kv / kp * qdot`` (0.2 s x velocity).
+
+    The ROS simulator and the headless env both use this class, so a command stream produces
+    identical physics in both.
     """
-    q = np.asarray(positions, float)
-    cmd = np.clip(q, idx.arm_limits[:, 0], idx.arm_limits[:, 1])
-    if prev_cmd is not None and max_step is not None:
-        cmd = np.clip(cmd, prev_cmd - max_step, prev_cmd + max_step)
-    clamped = bool(np.any(np.abs(cmd - q) > 1e-12))
-    data.ctrl[idx.arm_act] = cmd
-    data.ctrl[idx.grip_act] = gripper_cmd_to_ctrl(gripper, idx.grip_ctrl_max)
-    return cmd, clamped
+
+    def __init__(self, model: mujoco.MjModel, idx: SceneIndex, dt_tick: float,
+                 max_step: float | None, ff_v_max: float = 3.0, velocity_ff: bool = True,
+                 timeout_factor: float = 1.5):
+        self.idx = idx
+        self.dt = dt_tick
+        self.max_step = max_step
+        self.ff_v_max = ff_v_max
+        bias = model.actuator_biasprm[idx.arm_act]
+        self.ff_gain = bias[:, 2] / bias[:, 1] if velocity_ff else np.zeros(len(idx.arm_act))
+        self.timeout_factor = timeout_factor
+        self.clamp_count = 0
+        self.reset(np.zeros(len(idx.arm_act)))
+
+    def reset(self, q: np.ndarray, gripper: float = 1.0) -> None:
+        self.target = np.array(q, float)
+        self.gripper = float(gripper)
+        self.applied = np.array(q, float)
+        self.v_ref = np.zeros_like(self.applied)
+        self.t = 0.0
+        self._new = False
+        self._last_cmd = None
+        self._last_t = 0.0
+        self._interval = self.dt
+
+    def set_command(self, positions, gripper: float) -> None:
+        self.target = np.array(positions, float)
+        self.gripper = float(gripper)
+        self._new = True
+
+    def tick(self, data: mujoco.MjData) -> bool:
+        """Write ctrl for this tick. Returns True if the command was clamped."""
+        idx = self.idx
+        self.t += self.dt
+        cmd = np.clip(self.target, idx.arm_limits[:, 0], idx.arm_limits[:, 1])
+        if self.max_step is not None:
+            cmd = np.clip(cmd, self.applied - self.max_step, self.applied + self.max_step)
+        clamped = bool(np.any(np.abs(cmd - self.target) > 1e-12))
+        self.clamp_count += int(clamped)
+        if self._new:
+            if self._last_cmd is not None:
+                self._interval = self.t - self._last_t
+                self.v_ref = np.clip((cmd - self._last_cmd) / self._interval,
+                                     -self.ff_v_max, self.ff_v_max)
+            self._last_cmd, self._last_t, self._new = cmd, self.t, False
+        elif self.t - self._last_t > self.timeout_factor * self._interval + 1e-9:
+            self.v_ref[:] = 0.0
+        self.applied = cmd
+        data.ctrl[idx.arm_act] = cmd + self.ff_gain * self.v_ref
+        data.ctrl[idx.grip_act] = gripper_cmd_to_ctrl(self.gripper, idx.grip_ctrl_max)
+        return clamped
+
+
+def make_servo(model: mujoco.MjModel, idx: SceneIndex, rates: dict, ik_cfg: dict,
+               clamp_steps: bool = True) -> JointServo:
+    """JointServo configured from ``rates.yaml`` and ``ik.yaml`` (control tick, clamps, ff)."""
+    steps = int(round(rates["physics"] / rates["control"]))
+    return JointServo(model, idx, steps * model.opt.timestep,
+                      float(ik_cfg["max_joint_step_rad"]) if clamp_steps else None,
+                      float(ik_cfg["ff_v_max"]), bool(ik_cfg["velocity_feedforward"]))
 
 
 def cube_pose(data: mujoco.MjData, idx: SceneIndex) -> tuple[np.ndarray, np.ndarray]:

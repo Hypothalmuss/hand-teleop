@@ -1,0 +1,4 @@
+real-time factor: 1.0001 over 30.0 s wall
+rendering: on (30.0 Hz front camera)
+cpu: AMD Ryzen 5 5600 6-Core Processor
+load: sim + scripted sine sweep at 100 Hz, both cameras rendered (EGL, RTX 3050)

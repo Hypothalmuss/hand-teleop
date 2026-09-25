@@ -1,0 +1,6 @@
+$ python3 -m pytest -s src/mujoco_sim_ros/test      (launch_testing, ROS 2 Humble)
+joint_states 99.8 Hz, front 29.8 Hz, wrist 29.8 Hz, RTF 1.000     (5 s window, rendering on)
+reset: same seed -> identical cube pose; different seeds differ
+sine tracking RMS 0.00145 rad over 502 samples                   (0.3 rad, 0.2 Hz, after 1 s)
+scripted pick-and-place via ROS: 10/10 (seeds 100-109, rt_factor 2)
+3 passed in 63.88s

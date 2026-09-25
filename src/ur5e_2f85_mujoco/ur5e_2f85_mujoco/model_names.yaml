@@ -15,6 +15,7 @@ arm_actuators:
 - wrist_3
 gripper_actuator: 2f85/fingers_actuator
 gripper_joint: 2f85/right_driver_joint
+ros_gripper_joint: finger_joint
 gripper_joint_range:
 - 0.0
 - 0.8

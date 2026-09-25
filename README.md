@@ -4,7 +4,7 @@ Webcam hand teleoperation of a simulated UR5e + Robotiq 2F-85, used to record pi
 demonstrations and train imitation-learning policies (ACT, Diffusion Policy). Simulation only,
 live camera, real human input. The full plan is in [`docs/project_plan.md`](docs/project_plan.md).
 
-> Status: work in progress. Phases 0–1 done (repo, messages, MuJoCo scene); see `CHANGELOG.md`.
+> Status: work in progress. Phases 0–2 done (repo, messages, MuJoCo scene, simulator node); see `CHANGELOG.md`.
 
 ## Environment (recorded at phase 0)
 
@@ -38,6 +38,13 @@ python3 -m ur5e_2f85_mujoco.build_scene       # writes scene.xml + model_names.y
 python3 -m ur5e_2f85_mujoco.trials --n 200    # scripted grasp-lift stability check
 ```
 
+Run the simulator (MuJoCo viewer + scripted pick-and-place):
+
+```bash
+ros2 launch hand_teleop_bringup sim.launch.py viewer:=true scripted:=pick_place episodes:=3
+```
+
+RViz (`rviz:=true`) shows the UR5e model when `ros-humble-ur-description` is installed.
 Docker is planned after the first working version.
 
 ## Layout
@@ -46,6 +53,8 @@ Docker is planned after the first working version.
 config/                 every rate, gain, range and threshold (single source of truth)
 src/hand_teleop_msgs/   messages and services
 src/ur5e_2f85_mujoco/   MJCF assets (Menagerie), scene builder, kinematics oracle, task logic (no ROS)
+src/mujoco_sim_ros/     simulator node, scripted trajectories
+src/hand_teleop_bringup/ launch files, RViz config; installs config/ for every node
 docs/                   project plan
 results/                committed evidence (clips, metrics) referenced by this README
 ```
