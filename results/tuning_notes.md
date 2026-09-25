@@ -11,3 +11,6 @@
 - Phase 3: the open/fist classifier uses per-finger straightness (chord/arc, MCP→tip) with open > 0.85 and fist < 0.6. The plan's extension ratio |tip−mcp|/palm_scale measured 0.5–0.9 on clearly open hands (a pinky is ~0.7 palm lengths), so its open > 1.3 can never fire. It stays selectable with `gestures.feature: extension`.
 - Phase 3: hand features use aspect-corrected image-plane distances (y scaled by H/W); MediaPipe normalizes x and y by different lengths.
 - Phase 3: the plan's "raw values in a debug field" has no field in the fixed messages, so publish_raw adds a second topic /hand/state_raw with the unfiltered values.
+- Phase 4: workspace sign.x = −1 by default. d = 1/palm_scale grows as the hand moves away from the webcam, and the plan wants "closer to webcam = TCP farther from base", which is the reversed mapping.
+- Phase 4: relative motion while engaged uses the unclamped linear mapping and only the final target is clamped to the box, so re-anchoring near the edge of the calibrated hand range still moves freely inward and outward.
+- Phase 4: the calibration wizard writes the left-hand pinch range into gripper.pinch_closed / pinch_open, the values the mapper uses (the separate hand_range.pinch entry was dropped as a duplicate).

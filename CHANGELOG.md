@@ -1,5 +1,10 @@
 # Changelog
 
+## Phase 4: Teleop mapping node
+- `teleop_mapper` node: open-palm/fist clutch with relative re-anchoring, 0.3 s absent hold, e-stop, 0.5 m/s target speed limit, pinch→gripper with a 2/s rate limit, RViz marker.
+- Pure `mapping.py` plus `scripts/calibrate_workspace.py` (9 poses, about 30 s).
+- Results: 10 unit tests green; smoke test sim + tracker (video) + mapper publishes `/teleop/target` at 30 Hz.
+
 ## Phase 3: Hand tracking node
 - `hand_tracker` node: MediaPipe HandLandmarker (VIDEO mode, bundled model), One Euro filters, straightness-based open/fist with 3-frame debounce, presence logic, debug overlay (fps, latency, wall and sim clocks), `--video` offline mode.
 - Pure `one_euro.py`, `gestures.py`, `tracker.py`, `clip_eval.py`; setup and clip-recording scripts for the operator.
