@@ -23,6 +23,7 @@ for pkg in ("hand_tracker", "teleop_mapper", "ur5e_2f85_mujoco"):
     sys.path.insert(0, str(ROOT / "src" / pkg))
 
 from hand_tracker import overlay  # noqa: E402
+from hand_tracker.camera import open_camera  # noqa: E402
 from hand_tracker.tracker import HandTracker  # noqa: E402
 from teleop_mapper.mapping import hand_axes  # noqa: E402
 
@@ -47,10 +48,11 @@ def main() -> None:
     args = ap.parse_args()
     cfg_dir = ROOT / "config"
     filters = yaml.safe_load((cfg_dir / "filters.yaml").read_text())
-    cap = cv2.VideoCapture(args.camera, cv2.CAP_V4L2)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    tracker = HandTracker(filters, 640, 480)
+    cam = dict(filters["camera"], index=args.camera)
+    rate = yaml.safe_load((ROOT / "config" / "rates.yaml").read_text())["webcam"]
+    cap, width, height = open_camera(cam, rate)  # same mode as live teleop
+    view_w = filters["display"]["view_width"]
+    tracker = HandTracker(filters, width, height)
     samples = {}
     for key, prompt, side in STEPS:
         vals = []
@@ -67,9 +69,11 @@ def main() -> None:
             if recording and h.present:
                 vals.append(h.pinch if key.startswith("pinch") else
                             hand_axes(h.landmarks, h.palm_scale))
-            view = overlay.draw(frame, hands, 0.0, 0.0)
+            small = cv2.resize(frame, (view_w, round(frame.shape[0] * view_w / frame.shape[1])))
+            view = overlay.draw(small, hands, 0.0, 0.0)
             color = (0, 0, 255) if recording else (0, 255, 255)
-            cv2.putText(view, prompt, (10, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            cv2.putText(view, prompt, (10, view.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                        color, 2)
             cv2.imshow("calibrate_workspace", view)
             cv2.waitKey(1)
         if not vals:

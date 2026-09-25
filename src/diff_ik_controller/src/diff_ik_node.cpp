@@ -60,6 +60,7 @@ class DiffIkNode : public rclcpp::Node {
     rate_ = declare_parameter<double>("rate", 200.0);
     fault_rad_ = declare_parameter<double>("tracking_fault_rad", 0.1);
     velocity_ff_ = declare_parameter<bool>("target_velocity_ff", true);
+    ff_alpha_ = declare_parameter<double>("target_velocity_ff_alpha", 0.5);
 
     diff_ik::DiffIkParams p;
     p.kp_pos = declare_parameter<double>("kp_pos", p.kp_pos);
@@ -159,7 +160,7 @@ class DiffIkNode : public rclcpp::Node {
     }
     if (velocity_ff_ && msg.engaged && last_target_t_ > 0.0 && t > last_target_t_) {
       const Eigen::Vector3d v = (pos - target_.position) / (t - last_target_t_);
-      v_ff_ = 0.5 * v_ff_ + 0.5 * v;  // light smoothing of the 30 Hz finite difference
+      v_ff_ = (1.0 - ff_alpha_) * v_ff_ + ff_alpha_ * v;  // smooth the 30 Hz finite difference
       const double n = v_ff_.norm();
       if (n > ik_->params().v_max) v_ff_ *= ik_->params().v_max / n;
     }
@@ -288,7 +289,7 @@ class DiffIkNode : public rclcpp::Node {
 
   std::vector<std::string> joint_names_;
   std::vector<int> js_index_;
-  double rate_, fault_rad_;
+  double rate_, fault_rad_, ff_alpha_;
   bool velocity_ff_;
   std::unique_ptr<diff_ik::Kinematics> kin_;
   std::unique_ptr<diff_ik::DiffIk> ik_;

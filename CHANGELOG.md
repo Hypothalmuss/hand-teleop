@@ -1,5 +1,10 @@
 # Changelog
 
+## Post-phase-6: live webcam fixes
+- Camera window with the hand overlay during teleop (`window:=false` to disable); camera at the widest mode that holds 30 fps (1920x1080 here); fixed 15 fps caused by a single V4L2 buffer.
+- Steadier motion: heavier stationary smoothing, 0.3 m/s target speed limit, smoother IK feedforward; capture stamps include the camera pipeline (~41 ms).
+- Operator scripts use the same camera mode as live teleop; all 62 tests green.
+
 ## Phase 6: Integration (software complete; operator runs pending)
 - `teleop.launch.py` (sim, hand input webcam/video/fake, mapper, IK, optional console window and RViz), `keyboard_console`, `fake_hand`, sim `demo_view`, shared `SuccessDetector` and seed lists.
 - Scripts: `measure_latency.py`, `teleop_benchmark.py`, `record_demo_video.py/.sh`; full-chain integration launch test.

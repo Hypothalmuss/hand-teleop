@@ -3,18 +3,26 @@
 
     python3 scripts/record_test_clips.py [--camera 0]
 
-Writes src/hand_tracker/test/data/<clip>.mp4 (raw, unmirrored 640x480 @ 30 fps) plus a JSON
+Writes src/hand_tracker/test/data/<clip>.mp4 (raw, unmirrored, live camera mode downscaled
+to display.view_width, 30 fps) plus a JSON
 ground truth next to each. Follow the on-screen prompt; each clip is 10 s after a 3 s countdown.
 """
 
 import argparse
 import json
+import sys
 import time
 from pathlib import Path
 
 import cv2
+import yaml
 
-DATA = Path(__file__).resolve().parents[1] / "src" / "hand_tracker" / "test" / "data"
+ROOT = Path(__file__).resolve().parents[1]
+DATA = ROOT / "src" / "hand_tracker" / "test" / "data"
+sys.path.insert(0, str(ROOT / "src" / "hand_tracker"))
+
+from hand_tracker.camera import open_camera  # noqa: E402
+
 CLIPS = [
     ("right_open_sweep", "RIGHT hand only, OPEN palm: sweep slowly left/right/up/down",
      {"handedness": "right"}),
@@ -31,28 +39,29 @@ def main() -> None:
     ap.add_argument("--seconds", type=float, default=10.0)
     args = ap.parse_args()
     DATA.mkdir(parents=True, exist_ok=True)
-    cap = cv2.VideoCapture(args.camera, cv2.CAP_V4L2)
-    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    cap.set(cv2.CAP_PROP_FPS, 30)
+    filters = yaml.safe_load((ROOT / "config" / "filters.yaml").read_text())
+    rate = yaml.safe_load((ROOT / "config" / "rates.yaml").read_text())["webcam"]
+    cap, width, height = open_camera(dict(filters["camera"], index=args.camera), rate)
+    out_w = min(width, filters["display"]["view_width"])
+    out_h = round(height * out_w / width)
     for name, prompt, meta in CLIPS:
         t_end = time.monotonic() + 3.0
         while time.monotonic() < t_end:  # countdown with preview
             ok, frame = cap.read()
-            view = cv2.flip(frame, 1)
+            view = cv2.flip(cv2.resize(frame, (out_w, out_h)), 1)
             cv2.putText(view, prompt, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
             cv2.putText(view, f"starts in {t_end - time.monotonic():.1f}s", (10, 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
             cv2.imshow("record", view)
             cv2.waitKey(1)
         out = cv2.VideoWriter(str(DATA / f"{name}.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), 30.0,
-                              (640, 480))
+                              (out_w, out_h))
         t_end = time.monotonic() + args.seconds
         while time.monotonic() < t_end:
             ok, frame = cap.read()
             if not ok:
                 continue
+            frame = cv2.resize(frame, (out_w, out_h), interpolation=cv2.INTER_AREA)
             out.write(frame)
             view = cv2.flip(frame, 1)
             cv2.putText(view, f"REC {name}  {t_end - time.monotonic():.1f}s", (10, 30),

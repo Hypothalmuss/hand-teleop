@@ -73,6 +73,10 @@ colcon test --executor sequential && colcon test-result --verbose
 | Sim + scripted pick-and-place | `ros2 launch hand_teleop_bringup sim.launch.py viewer:=true scripted:=pick_place episodes:=3` |
 | Sim + IK only | `ros2 launch hand_teleop_bringup ik_sim.launch.py viewer:=true` |
 
+A camera window with the hand overlay opens with teleop (`window:=false` to disable). The
+webcam runs at its widest 30 fps mode (`camera.width: max` in `config/filters.yaml`). Re-run
+`calibrate_workspace.py` whenever the camera mode or position changes.
+
 Console keys: `ESC` e-stop (latched), `c` clear, `r` reset to the next seed, `space`
 start/stop episode, `d` discard, `s` mark success. Clutch: **open right palm = engaged,
 fist = hold**. The left thumb–index pinch drives the gripper.

@@ -62,7 +62,8 @@ def _nodes(context):
     else:
         nodes.append(Node(package="hand_tracker", executable="hand_tracker", output="screen",
                           parameters=[{"config_dir": cfg, "video": video,
-                                       "loop_video": arg("loop_video") == "true"}, sim_time],
+                                       "loop_video": arg("loop_video") == "true",
+                                       "show_window": arg("window") == "true"}, sim_time],
                           remappings=SIM_TIME_REMAPS))
     console = arg("console")
     if console == "terminal":
@@ -86,5 +87,7 @@ def generate_launch_description():
         DeclareLaunchArgument("hand", default_value="webcam", description="webcam | fake"),
         DeclareLaunchArgument("console", default_value="none", description="none | terminal"),
         DeclareLaunchArgument("demo_view", default_value="false"),
+        DeclareLaunchArgument("window", default_value="true",
+                              description="camera window with the hand overlay"),
         OpaqueFunction(function=_nodes),
     ])

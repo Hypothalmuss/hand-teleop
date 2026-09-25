@@ -5,7 +5,7 @@ from ur5e_2f85_mujoco.config import load_config
 
 IK_KEYS = ("kp_pos", "v_max", "kp_rot", "w_max", "lambda0", "sigma_thresh", "lambda_max",
            "k_null", "qd_max", "limit_margin", "tracking_fault_rad", "workspace_guard_margin",
-           "target_velocity_ff")
+           "target_velocity_ff", "target_velocity_ff_alpha")
 
 
 def node_parameters(config_dir=None) -> dict:

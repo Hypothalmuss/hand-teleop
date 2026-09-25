@@ -10,6 +10,7 @@ when ``use_sim_time`` is set) at frame read and is copied unchanged downstream.
 from __future__ import annotations
 
 import array
+import os
 import threading
 import time
 from collections import deque
@@ -17,6 +18,7 @@ from collections import deque
 import cv2
 import numpy as np
 import rclpy
+from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from rosgraph_msgs.msg import Clock
@@ -24,23 +26,22 @@ from sensor_msgs.msg import Image
 
 from hand_teleop_msgs.msg import Hand, HandState
 from hand_tracker import overlay
+from hand_tracker.camera import open_camera
 from hand_tracker.tracker import HandTracker
 from ur5e_2f85_mujoco.config import find_config_dir, load_config
 
+WINDOW = "hand_tracker"
+MAX_FRAME_AGE_S = 0.5  # larger means the driver gives no usable buffer timestamp
 
-def open_source(video: str, cam: dict, fps: float) -> cv2.VideoCapture:
-    if video:
-        cap = cv2.VideoCapture(video)
-    else:
-        cap = cv2.VideoCapture(int(cam["index"]), cv2.CAP_V4L2)
-        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*cam["fourcc"]))
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam["width"])
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam["height"])
-        cap.set(cv2.CAP_PROP_FPS, fps)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, cam["buffer_size"])
+
+def open_source(video: str, cam: dict, fps: float, log=print):
+    """Returns (VideoCapture, width, height) for a video file or the webcam."""
+    if not video:
+        return open_camera(cam, fps, log)
+    cap = cv2.VideoCapture(video)
     if not cap.isOpened():
-        raise RuntimeError(f"cannot open {'video ' + video if video else 'camera'}")
-    return cap
+        raise RuntimeError(f"cannot open video {video}")
+    return cap, int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 
 def to_hand_msg(hand, raw: bool = False) -> Hand:
@@ -61,18 +62,24 @@ class HandTrackerNode(Node):
         self.declare_parameter("video", "")
         self.declare_parameter("loop_video", False)
         self.declare_parameter("publish_debug_image", True)
+        self.declare_parameter("show_window", True)  # local camera window with the overlay
         cfg_dir = find_config_dir(self.get_parameter("config_dir").value or None)
         self.cfg = load_config("filters.yaml", cfg_dir)
         self.rates = load_config("rates.yaml", cfg_dir)
         ws = load_config("workspace.yaml", cfg_dir)
         self.pinch_range = (ws["gripper"]["pinch_closed"], ws["gripper"]["pinch_open"])
         self.video = self.get_parameter("video").value
-        self.cap = open_source(self.video, self.cfg["camera"], self.rates["webcam"])
-        w = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        h = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.cap, w, h = open_source(self.video, self.cfg["camera"], self.rates["webcam"],
+                                     self.get_logger().info)
         self.tracker = HandTracker(self.cfg, w, h)
         self.publish_raw = bool(self.cfg.get("publish_raw", False))
         self.debug_image = bool(self.get_parameter("publish_debug_image").value)
+        disp = self.cfg["display"]
+        self.show_window = bool(self.get_parameter("show_window").value and disp["show_window"])
+        if self.show_window and not os.environ.get("DISPLAY"):
+            self.get_logger().warn("no DISPLAY: camera window disabled")
+            self.show_window = False
+        self.view_width = int(disp["view_width"])  # overlay / window / debug image width
 
         self.pub = self.create_publisher(HandState, "hand/state", 10)
         self.pub_raw = self.create_publisher(HandState, "hand/state_raw", 10) \
@@ -83,10 +90,12 @@ class HandTrackerNode(Node):
         self.create_subscription(Clock, "/clock", self._on_clock, QoSProfile(
             depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
 
+        self._window_open = False
         self.latency_ms = deque(maxlen=300)
+        self.frame_age_ms = deque(maxlen=300)
         self.fps = 0.0
         self.running = True
-        self.thread = threading.Thread(target=self._loop, daemon=True)
+        self.thread = threading.Thread(target=self._safe_loop, daemon=True)
         self.thread.start()
         self.get_logger().info(
             f"hand_tracker: {'video ' + self.video if self.video else 'webcam'} {w}x{h}")
@@ -100,6 +109,14 @@ class HandTrackerNode(Node):
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             ok, frame = self.cap.read()
         return ok, frame
+
+    def _safe_loop(self) -> None:
+        try:
+            self._loop()
+        except Exception as exc:  # noqa: BLE001
+            if rclpy.ok() and self.running:
+                raise
+            del exc  # publisher/context gone during shutdown
 
     def _loop(self) -> None:
         last_wall = None
@@ -122,7 +139,16 @@ class HandTrackerNode(Node):
             else:
                 t = time.monotonic()
             t_read = time.perf_counter()
-            capture_stamp = self.get_clock().now().to_msg()
+            now = self.get_clock().now()
+            age = 0.0
+            if not self.video:
+                # V4L2 buffer timestamp (CLOCK_MONOTONIC): exposure/USB/decode/queue time
+                # before the read (~40 ms) belongs in the end-to-end latency.
+                buf_t = self.cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+                if 0.0 <= t - buf_t < MAX_FRAME_AGE_S:
+                    age, t = t - buf_t, buf_t
+            self.frame_age_ms.append(age * 1e3)
+            capture_stamp = (now - Duration(nanoseconds=int(age * 1e9))).to_msg()
             frame = cv2.flip(frame, 1)  # mirror: the image behaves like a mirror
             hands = self.tracker.process(frame, t)
 
@@ -145,25 +171,48 @@ class HandTrackerNode(Node):
                 raw.left = to_hand_msg(hands["left"], raw=True)
                 raw.right = to_hand_msg(hands["right"], raw=True)
                 self.pub_raw.publish(raw)
-            if self.debug_image and self.pub_img.get_subscription_count() > 0:
-                img = overlay.draw(frame, hands, self.fps, self.latency_ms[-1], self.sim_time,
+            publish_img = self.debug_image and self.pub_img.get_subscription_count() > 0
+            if publish_img or self.show_window:
+                # Draw on a downscaled copy: cheap at 1080p, same look at any resolution.
+                scale = self.view_width / frame.shape[1]
+                view = cv2.resize(frame, (self.view_width, int(round(frame.shape[0] * scale))),
+                                  interpolation=cv2.INTER_AREA) if scale < 1.0 else frame
+                img = overlay.draw(view, hands, self.fps, self.latency_ms[-1], self.sim_time,
                                    self.pinch_range)
-                im = Image()
-                im.header = msg.header
-                im.height, im.width = img.shape[:2]
-                im.encoding, im.step = "bgr8", img.shape[1] * 3
-                im.data = array.array("B", img.tobytes())
-                self.pub_img.publish(im)
+                if publish_img:
+                    im = Image()
+                    im.header = msg.header
+                    im.height, im.width = img.shape[:2]
+                    im.encoding, im.step = "bgr8", img.shape[1] * 3
+                    im.data = array.array("B", img.tobytes())
+                    self.pub_img.publish(im)
+                if self.show_window:
+                    self._show(img)
             if len(self.latency_ms) == self.latency_ms.maxlen:
                 lat = np.array(self.latency_ms)
                 self.get_logger().info(
                     f"{self.fps:.1f} fps, frame->publish p50 {np.percentile(lat, 50):.1f} ms "
-                    f"p95 {np.percentile(lat, 95):.1f} ms")
+                    f"p95 {np.percentile(lat, 95):.1f} ms, frame age at read p50 "
+                    f"{np.percentile(self.frame_age_ms, 50):.1f} ms")
                 self.latency_ms.clear()
+                self.frame_age_ms.clear()
+
+    def _show(self, img) -> None:
+        if not self._window_open:
+            cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+            cv2.resizeWindow(WINDOW, img.shape[1], img.shape[0])
+            self._window_open = True
+        elif cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
+            self.show_window = False  # closed by the user: stop drawing it
+            return
+        cv2.imshow(WINDOW, img)
+        cv2.waitKey(1)
 
     def destroy_node(self):
         self.running = False
         self.thread.join(timeout=1.0)
+        if self._window_open:
+            cv2.destroyAllWindows()
         self.cap.release()
         self.tracker.close()
         super().destroy_node()

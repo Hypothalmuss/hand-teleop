@@ -17,3 +17,4 @@ velocity_feedforward: true
 ff_v_max: 3.0             # rad/s, clip on the command-derived reference velocity
 # Cartesian target-velocity feedforward (finite difference of the 30 Hz targets)
 target_velocity_ff: true
+target_velocity_ff_alpha: 0.4   # EMA weight of each new finite difference (lower = smoother)

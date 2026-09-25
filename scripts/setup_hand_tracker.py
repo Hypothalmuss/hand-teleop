@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "src" / "hand_tracker"))
 sys.path.insert(0, str(ROOT / "src" / "ur5e_2f85_mujoco"))
 
 from hand_tracker import overlay  # noqa: E402
+from hand_tracker.camera import open_camera  # noqa: E402
 from hand_tracker.tracker import HandTracker  # noqa: E402
 
 
@@ -29,10 +30,11 @@ def main() -> None:
     cfg_path = ROOT / "config" / "filters.yaml"
     cfg = yaml.safe_load(cfg_path.read_text())
     cfg["swap_handedness"] = False  # measure the raw MediaPipe labels
-    cap = cv2.VideoCapture(args.camera, cv2.CAP_V4L2)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    tracker = HandTracker(cfg, 640, 480)
+    cam = dict(cfg["camera"], index=args.camera)
+    rate = yaml.safe_load((ROOT / "config" / "rates.yaml").read_text())["webcam"]
+    cap, width, height = open_camera(cam, rate)  # same mode as live teleop
+    view_w = cfg["display"]["view_width"]
+    tracker = HandTracker(cfg, width, height)
     votes = Counter()
     t_start = time.monotonic()
     while time.monotonic() - t_start < 8.0:
@@ -45,8 +47,9 @@ def main() -> None:
         hands = tracker.features.update(det, t)
         if time.monotonic() - t_start > 3.0 and len(det) == 1:
             votes[next(iter(det))] += 1
-        view = overlay.draw(frame, hands, 0.0, 0.0)
-        cv2.putText(view, "Raise ONLY your RIGHT hand, open palm", (10, 460),
+        small = cv2.resize(frame, (view_w, round(frame.shape[0] * view_w / frame.shape[1])))
+        view = overlay.draw(small, hands, 0.0, 0.0)
+        cv2.putText(view, "Raise ONLY your RIGHT hand, open palm", (10, view.shape[0] - 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
         cv2.imshow("setup_hand_tracker", view)
         cv2.waitKey(1)

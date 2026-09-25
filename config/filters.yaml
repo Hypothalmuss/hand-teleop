@@ -1,7 +1,12 @@
-camera: {index: 0, width: 640, height: 480, fourcc: MJPG, buffer_size: 1}
-# One Euro parameters are in pixel units (value_scale = image width), the standard tuning space.
-landmarks: {min_cutoff: 1.0, beta: 0.007, d_cutoff: 1.0, value_scale: 640}
-palm_scale: {min_cutoff: 0.5, beta: 0.007, d_cutoff: 1.0, value_scale: 640}
+# width/height "max": widest mode that delivers min_fps (this webcam: 1920x1080 MJPG @ 30).
+# buffer_size >= 2: with 1 buffer V4L2 drops every other frame while one is decoded (15 fps).
+camera: {index: 0, width: max, height: max, fourcc: MJPG, buffer_size: 2, min_fps: 25}
+# Local camera window (overlay) while teleoperating; view_width also sizes /hand/debug_image.
+display: {show_window: true, view_width: 960}
+# One Euro parameters in pixel units of a 640 px reference width (value_scale), so they mean
+# the same at any camera resolution. Lower min_cutoff = steadier when the hand is still.
+landmarks: {min_cutoff: 0.5, beta: 0.007, d_cutoff: 1.0, value_scale: 640}
+palm_scale: {min_cutoff: 0.2, beta: 0.007, d_cutoff: 1.0, value_scale: 640}
 gestures:
   # straightness = chord/arc per finger (length-invariant); extension = |tip - mcp| / palm_scale
   # (plan formula; its 1.3 open threshold is unreachable: measured 0.5-0.9 on open hands).
@@ -11,5 +16,5 @@ gestures:
     extension: {open: 1.3, fist: 0.9}
   debounce_frames: 3
 missing_frames: 5
-swap_handedness: false
+swap_handedness: true
 publish_raw: false

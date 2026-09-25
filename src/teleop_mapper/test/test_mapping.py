@@ -97,23 +97,26 @@ def test_speed_limit(ws):
 
 
 def test_gripper_ramp_rate_limited_and_hold(ws):
+    # Plan: pinch ramp 0.2 -> 1.1 over 0.1 s. The ramp spans the calibrated range here (from
+    # below pinch_closed to above pinch_open) so the test holds for any calibration.
+    g = ws["gripper"]
+    lo, hi = g["pinch_closed"] - 0.05, g["pinch_open"] + 0.1
     core = TeleopMapperCore(ws, 30.0)
     ee = np.array([0.45, 0.0, 0.20])
     t = 0.0
-    core.update(ABSENT, hand_at(0.5, 0.5, 7.0, pinch=0.2), ee, False, t)
-    # the first frame is itself rate limited from the initial open value
+    core.update(ABSENT, hand_at(0.5, 0.5, 7.0, pinch=lo), ee, False, t)
     grips = []
-    for k in range(1, 4):  # pinch 0.2 -> 1.1 over 0.1 s
+    for k in range(1, 4):  # ramp over 0.1 s
         t += 1 / FS
-        pinch = 0.2 + 0.9 * min(1.0, k / 3)
+        pinch = lo + (hi - lo) * min(1.0, k / 3)
         grips.append(core.update(ABSENT, hand_at(0.5, 0.5, 7.0, pinch=pinch), ee, False,
                                  t).gripper)
     for _ in range(40):
         t += 1 / FS
-        grips.append(core.update(ABSENT, hand_at(0.5, 0.5, 7.0, pinch=1.1), ee, False,
+        grips.append(core.update(ABSENT, hand_at(0.5, 0.5, 7.0, pinch=hi), ee, False,
                                  t).gripper)
     rates = np.abs(np.diff(grips)) * FS
-    assert rates.max() <= ws["gripper"]["rate_limit"] + 1e-9
+    assert rates.max() <= g["rate_limit"] + 1e-9
     assert grips[-1] == pytest.approx(1.0)
     held = core.update(ABSENT, ABSENT, ee, False, t + 1 / FS).gripper
     assert held == grips[-1]

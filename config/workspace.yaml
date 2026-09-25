@@ -5,17 +5,17 @@ box:
   z: [0.02, 0.35]
 # Calibrated right-hand ranges (written by scripts/calibrate_workspace.py)
 hand_range:
-  u: [0.2, 0.8]           # mirrored normalized image x of landmark 9
-  v: [0.2, 0.8]           # 1 - normalized image y of landmark 9
-  d: [5.0, 10.0]          # 1 / palm_scale (palm_scale in image-width units)
+  u: [0.1125, 0.8573]           # mirrored normalized image x of landmark 9
+  v: [0.2370, 0.9569]           # 1 - normalized image y of landmark 9
+  d: [3.3253, 6.8865]          # 1 / palm_scale (palm_scale in image-width units)
 axis_map: {u: y, v: z, d: x}
 # sign -1 reverses an axis: d grows with distance from the webcam, and a hand closer to the
 # webcam moves the TCP farther from the base (towards the front camera).
 sign: {x: -1.0, y: 1.0, z: 1.0}
 gain: {x: 1.0, y: 1.0, z: 1.0}
-max_target_speed: 0.5     # m/s
+max_target_speed: 0.3     # m/s
 absent_hold_s: 0.3
 gripper:
-  pinch_closed: 0.25      # calibrated left-hand pinch range
-  pinch_open: 1.0
+  pinch_closed: 0.570      # calibrated left-hand pinch range
+  pinch_open: 1.166
   rate_limit: 2.0         # per second
