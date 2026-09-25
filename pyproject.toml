@@ -1,0 +1,9 @@
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["third_party", "build", "install", "log"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]

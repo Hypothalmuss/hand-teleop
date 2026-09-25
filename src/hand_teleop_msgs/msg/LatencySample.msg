@@ -1,0 +1,5 @@
+builtin_interfaces/Time capture_stamp
+builtin_interfaces/Time hand_stamp
+builtin_interfaces/Time target_stamp
+builtin_interfaces/Time command_stamp
+float64 tracking_error_m

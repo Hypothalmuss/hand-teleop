@@ -1,0 +1,9 @@
+landmarks: {min_cutoff: 1.0, beta: 0.007, d_cutoff: 1.0}
+palm_scale: {min_cutoff: 0.5, beta: 0.007, d_cutoff: 1.0}
+gestures:
+  open_threshold: 1.3
+  fist_threshold: 0.9
+  debounce_frames: 3
+missing_frames: 5
+swap_handedness: false
+publish_raw: false

@@ -1,0 +1,14 @@
+kp_pos: 5.0               # 1/s
+v_max: 0.5                # m/s
+kp_rot: 5.0               # 1/s
+w_max: 2.0                # rad/s
+lambda0: 0.05
+sigma_thresh: 0.05
+lambda_max: 0.3
+k_null: 1.0
+qd_max: 1.0               # rad/s per joint
+limit_margin: 0.02        # rad
+tracking_fault_rad: 0.1
+workspace_guard_margin: 0.02
+max_joint_step_rad: 0.05  # sim-side clamp per control tick
+q_home: [3.14159265, -1.5708, 1.5708, -1.5708, -1.5708, 0.0]

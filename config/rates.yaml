@@ -1,0 +1,15 @@
+# Single source of truth for every loop rate (Hz).
+# ROS 2 distro: Humble on Ubuntu 22.04 (plan fallback; the dev machine is 22.04).
+webcam: 30.0
+hand_tracker: 30.0
+teleop_mapper: 30.0
+ik: 200.0
+physics: 500.0
+control: 100.0          # sim control tick: physics/control mj_steps per tick
+joint_states: 100.0
+ee_pose: 100.0
+clock: 100.0
+sim_images: 30.0
+object_poses: 30.0
+recorder: 20.0
+policy: 20.0

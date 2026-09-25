@@ -1,0 +1,9 @@
+# Pinned after the first successful install (Ubuntu 22.04, Python 3.10, ROS 2 Humble).
+mujoco==3.12.0
+mediapipe==1.0.1
+numpy==1.26.4          # keep < 2: ROS 2 Humble cv_bridge is built against numpy 1.x
+opencv-python==4.11.0.86
+scipy==1.15.3
+PyYAML>=5.4
+pytest>=6.2
+# Learning stack (torch, lerobot) is pinned when phase 7 starts.

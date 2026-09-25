@@ -1,0 +1,5 @@
+int64 seed
+bool randomize_target
+---
+geometry_msgs/Pose cube
+geometry_msgs/Pose target

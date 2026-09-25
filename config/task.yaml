@@ -1,0 +1,26 @@
+cube:
+  half_size: 0.015        # m
+  mass: 0.05              # kg
+  friction: [1.0, 0.005, 0.0001]
+  rgba: [0.85, 0.1, 0.1, 1.0]
+target:
+  radius: 0.04            # m
+  half_height: 0.001
+  default_pos: [0.45, -0.20, 0.001]
+  rgba: [0.1, 0.8, 0.2, 1.0]
+table:
+  size: [1.2, 0.8]        # m, top surface at z = 0
+  center_xy: [0.3, 0.0]
+  thickness: 0.04
+spawn:
+  cube_x: [0.35, 0.55]
+  cube_y: [0.05, 0.25]
+  cube_yaw: [-3.14159265, 3.14159265]
+  target_x: [0.40, 0.50]  # used only when randomize_target=true (dataset B / OOD)
+  target_y: [-0.30, -0.10]
+settle_steps: 100
+success:
+  xy_tol: 0.03            # m, cube centre to target centre
+  z_max: 0.02             # m, cube centre height
+  gripper_min: 0.8        # aperture 0..1
+  hold_s: 1.0

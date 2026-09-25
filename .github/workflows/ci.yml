@@ -1,0 +1,40 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-22.04
+    env:
+      MUJOCO_GL: egl
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: humble
+      - name: System dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libegl-mesa0 libgl1-mesa-dri libgl1 libgles2 libeigen3-dev ffmpeg \
+            ros-humble-cv-bridge ros-humble-launch-testing-ament-cmake \
+            ros-humble-diagnostic-msgs ros-humble-visualization-msgs
+      - name: Python dependencies
+        run: python3 -m pip install -r requirements.txt
+      - name: colcon build
+        shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          colcon build --symlink-install --event-handlers console_direct+
+      - name: colcon test
+        shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          source install/setup.bash
+          colcon test --event-handlers console_direct+
+          colcon test-result --verbose
+      - name: pytest (ROS-free packages)
+        shell: bash
+        run: |
+          python3 -m pytest -q src/ur5e_2f85_mujoco $( [ -d learning/tests ] && ls learning/tests/*.py >/dev/null 2>&1 && echo learning )

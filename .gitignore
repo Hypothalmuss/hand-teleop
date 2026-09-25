@@ -1,0 +1,14 @@
+build/
+install/
+log/
+datasets/
+checkpoints/
+runs/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+# secrets
+.env
+.github_token
