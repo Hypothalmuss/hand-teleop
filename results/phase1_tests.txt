@@ -1,0 +1,8 @@
+$ python3 -m pytest -q src/ur5e_2f85_mujoco/test
+..........                                                               [100%]
+10 passed in 9.70s
+
+$ python3 -m ur5e_2f85_mujoco.trials --n 200
+success 200/200
+max hold slip 0.191 mm
+max penetration 0.80 mm

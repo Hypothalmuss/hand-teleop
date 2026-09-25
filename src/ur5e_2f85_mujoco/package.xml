@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ur5e_2f85_mujoco</name>
+  <version>0.1.0</version>
+  <description>UR5e + Robotiq 2F-85 MuJoCo scene, kinematics oracle and shared task logic (no ROS dependencies).</description>
+  <maintainer email="roboticai@eagleprojects.tn">robotic</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
