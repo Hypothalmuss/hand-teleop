@@ -1,5 +1,10 @@
 # Changelog
 
+## Phase 3: Hand tracking node
+- `hand_tracker` node: MediaPipe HandLandmarker (VIDEO mode, bundled model), One Euro filters, straightness-based open/fist with 3-frame debounce, presence logic, debug overlay (fps, latency, wall and sim clocks), `--video` offline mode.
+- Pure `one_euro.py`, `gestures.py`, `tracker.py`, `clip_eval.py`; setup and clip-recording scripts for the operator.
+- Results: 16 unit tests green, clip tests waiting for recordings; provisional frame→publish p95 30 ms (`results/phase3_latency.txt`).
+
 ## Phase 2: Simulation ROS 2 node
 - `mujoco_sim` node: 500 Hz physics, 100 Hz control, threaded 30 Hz rendering, `/sim/clock`, reset service, tf; `scripted_trajectory` (sine / pick-and-place); `sim.launch.py` + RViz config.
 - `JointServo` (limit and step clamp plus velocity feedforward) shared by all command paths; config locator shared by every node.
