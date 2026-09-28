@@ -61,6 +61,7 @@ class DiffIkNode : public rclcpp::Node {
     fault_rad_ = declare_parameter<double>("tracking_fault_rad", 0.1);
     velocity_ff_ = declare_parameter<bool>("target_velocity_ff", true);
     ff_alpha_ = declare_parameter<double>("target_velocity_ff_alpha", 0.5);
+    reset_jump_rad_ = declare_parameter<double>("reset_jump_rad", 0.2);
 
     diff_ik::DiffIkParams p;
     p.kp_pos = declare_parameter<double>("kp_pos", p.kp_pos);
@@ -119,11 +120,21 @@ class DiffIkNode : public rclcpp::Node {
         js_index_.push_back(static_cast<int>(it - msg.name.begin()));
       }
     }
+    const Vector6d q_prev = q_meas_;
     for (int i = 0; i < 6; ++i) {
       q_meas_[i] = msg.position[js_index_[i]];
       qd_meas_[i] = msg.velocity.size() == msg.position.size() ? msg.velocity[js_index_[i]] : 0.0;
     }
     meas_wall_ = now_wall();
+    // A jump no servo can make between two 100 Hz samples means the robot was moved externally
+    // (sim reset): adopt the measured joints and wait for a fresh engage edge, otherwise the
+    // held command would drive the arm straight back to the pre-reset pose.
+    if (have_meas_ && (q_meas_ - q_prev).cwiseAbs().maxCoeff() > reset_jump_rad_) {
+      q_cmd_ = q_meas_;
+      engaged_ = false;
+      fault_ = false;
+      RCLCPP_INFO(get_logger(), "measured joints jumped (reset): resynced, waiting for engage");
+    }
     have_meas_ = true;
     if (drift_active_) {
       // Braking first (joint speeds fall below rest_speed), then hold drift from the rest pose.
@@ -289,7 +300,7 @@ class DiffIkNode : public rclcpp::Node {
 
   std::vector<std::string> joint_names_;
   std::vector<int> js_index_;
-  double rate_, fault_rad_, ff_alpha_;
+  double rate_, fault_rad_, ff_alpha_, reset_jump_rad_;
   bool velocity_ff_;
   std::unique_ptr<diff_ik::Kinematics> kin_;
   std::unique_ptr<diff_ik::DiffIk> ik_;

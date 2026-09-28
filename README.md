@@ -4,9 +4,8 @@ Webcam hand teleoperation of a simulated UR5e + Robotiq 2F-85, used to record pi
 demonstrations and train imitation-learning policies (ACT, Diffusion Policy). Simulation only,
 live camera, real human input. The full plan is in [`docs/project_plan.md`](docs/project_plan.md).
 
-> **Status:** phases 0–6 (teleop half) are implemented and tested: 62 tests green, 5 webcam-clip
-> tests skipped until the clips are recorded. Live-webcam measurements (latency, benchmark, demo
-> video) are pending; see [Operator checklist](#operator-checklist). Phases 7–10 (learning) and
+> **Status:** phases 0–6 (teleop half) are implemented, tested and measured live
+> (`results/live_session/report.md`). Webcam test clips are still to be recorded. Phases 7–10 (learning) and
 > Docker come next. History is in `CHANGELOG.md`, and every deviation from the plan is recorded
 > in `results/tuning_notes.md`.
 
@@ -35,9 +34,10 @@ flowchart LR
 | Sim rates / real-time factor | 99.8 Hz joints, 29.8 Hz images, RTF 1.00 | 100 ± 5, 30 ± 3, ≥ 0.95 | `results/phase2_*.txt` |
 | IK square tracking (10 cm @ 0.1 m/s) | 3.8 mm RMS | < 5 mm | `results/phase5_square_tracking.png` |
 | Post-e-stop hold drift | 1.9e-4 rad | < 1e-3 rad | `results/phase5_tests.txt` |
-| Hand tracker frame→publish p95 | 30 ms (provisional, synthetic clip) | < 40 ms | `results/phase3_latency.txt` |
-| Capture→command p50 / p95 | 30 / 40 ms (provisional, synthetic clip) | < 120 / 200 ms | `results/latency_provisional_synthetic.md` |
-| Teleop benchmark, live latency, demo video | pending live webcam sessions | | |
+| Hand tracker processing (live, 1080p) | p50 20 ms, p95 23 ms typical (3 of 95 windows > 40 ms, max 53) | p95 < 40 ms | `results/live_session/report.md` |
+| Capture→command p50 / p95 (live, incl. camera) | 62 / 76 ms | < 120 / 200 ms | `results/latency.md` |
+| Tracking error RMS (live, ≤ 0.2 m/s) | 5.1 mm | < 15 mm | `results/latency.md` |
+| Teleop pick-and-place (live) | 20 / 20, median 25.9 s (23.0 s after practice) | ≥ 17 / 20, < 25 s | `results/teleop_benchmark.md` |
 
 ## Environment (recorded at phase 0)
 
@@ -54,6 +54,9 @@ flowchart LR
 `torch` and `lerobot` are pinned when the learning phases start.
 
 ## Quick start (native)
+
+Isolate ROS from other robots on the network first (domain 0 is shared on this LAN):
+`export ROS_DOMAIN_ID=77 ROS_LOCALHOST_ONLY=1`.
 
 ```bash
 source /opt/ros/humble/setup.bash

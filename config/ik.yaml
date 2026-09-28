@@ -18,3 +18,5 @@ ff_v_max: 3.0             # rad/s, clip on the command-derived reference velocit
 # Cartesian target-velocity feedforward (finite difference of the 30 Hz targets)
 target_velocity_ff: true
 target_velocity_ff_alpha: 0.4   # EMA weight of each new finite difference (lower = smoother)
+# joint jump between two joint-state samples treated as an external reset (resync, re-engage)
+reset_jump_rad: 0.2

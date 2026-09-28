@@ -152,3 +152,17 @@ def test_disengaged_holds_target(ws):
     moved = core.update(hand_at(0.9, 0.9, 5.0, is_open=False, is_fist=True), ABSENT, ee,
                         False, 0.2)
     assert not moved.engaged and np.array_equal(moved.target, out.target)
+
+
+def test_reset_jump_reanchors_without_moving(ws):
+    core = TeleopMapperCore(ws, 30.0)
+    ee = np.array([0.45, 0.10, 0.20])
+    t = 0.0
+    for _ in range(5):  # engaged, hand held open
+        core.update(hand_at(0.5, 0.5, 7.0), ABSENT, ee, False, t)
+        t += 1 / FS
+    ee_reset = np.array([0.49, 0.13, 0.33])  # sim reset moved the arm home
+    out = core.update(hand_at(0.5, 0.5, 7.0), ABSENT, ee_reset, False, t)
+    assert not out.engaged and np.allclose(out.target, ee_reset)
+    out = core.update(hand_at(0.5, 0.5, 7.0), ABSENT, ee_reset, False, t + 1 / FS)
+    assert out.engaged and np.linalg.norm(out.target - ee_reset) < 1e-3

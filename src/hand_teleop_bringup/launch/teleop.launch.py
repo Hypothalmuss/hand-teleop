@@ -19,7 +19,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from diff_ik_controller import node_parameters
-from hand_teleop_bringup import SIM_TIME_REMAPS, config_dir, rviz_nodes
+from hand_teleop_bringup import SIM_TIME_REMAPS, config_dir, domain_warning, rviz_nodes
 
 ENV_VARS = ("AMENT_PREFIX_PATH", "PYTHONPATH", "LD_LIBRARY_PATH", "PATH", "ROS_DOMAIN_ID",
             "ROS_VERSION", "ROS_DISTRO", "ROS_PYTHON_VERSION", "RMW_IMPLEMENTATION",
@@ -78,7 +78,7 @@ def _nodes(context):
 
 
 def generate_launch_description():
-    return LaunchDescription([
+    return LaunchDescription(domain_warning() + [
         DeclareLaunchArgument("seed", default_value="0"),
         DeclareLaunchArgument("viewer", default_value="true"),
         DeclareLaunchArgument("rviz", default_value="false"),

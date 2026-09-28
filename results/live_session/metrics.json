@@ -1,0 +1,133 @@
+{
+ "logged_rates_hz": {
+  "cmd": 198.9,
+  "js": 99.5,
+  "ee": 99.3,
+  "hand": 29.7,
+  "target": 29.7
+ },
+ "hand_fps_median": 30.161846160888672,
+ "right_present_pct": 99.65108476850817,
+ "still": {
+  "target_std_mm": [
+   5.977008336247111,
+   55.633370479847514,
+   4.9688065740054785
+  ],
+  "target_p2p_mm": [
+   23.555991014159616,
+   235.70226199708162,
+   21.93427767874656
+  ],
+  "tcp_std_mm": [
+   5.996330316910788,
+   56.41363854297972,
+   5.158365876336651
+  ],
+  "lm9_px_std_filtered": [
+   95.70719941262382,
+   22.10946248576908
+  ],
+  "lm9_px_std_raw": [
+   94.83527153679616,
+   21.931134884510676
+  ],
+  "palm_scale_rel_std_pct_filtered": 2.8773358068654518,
+  "palm_scale_rel_std_pct_raw": 3.0701879471557048,
+  "open_flag_toggles": 0
+ },
+ "sweeps": {
+  "sweep_lr": {
+   "axis": "y",
+   "range_used_pct_of_box": 100.0,
+   "cross_axis_std_mm": [
+    57.860701378933776,
+    17.084698434616694
+   ],
+   "target_speed_p95_mps": 0.39194563849999003,
+   "tracking_error_rms_mm": 10.440073366257367,
+   "tcp_lag_behind_target_ms": 35.0
+  },
+  "sweep_ud": {
+   "axis": "z",
+   "range_used_pct_of_box": 70.31168556670923,
+   "cross_axis_std_mm": [
+    32.654264349187194,
+    15.017181864188395
+   ],
+   "target_speed_p95_mps": 0.3570047624999485,
+   "tracking_error_rms_mm": 10.920278659762891,
+   "tcp_lag_behind_target_ms": 45.0
+  },
+  "sweep_fb": {
+   "axis": "x",
+   "range_used_pct_of_box": 100.0,
+   "cross_axis_std_mm": [
+    93.19171988530717,
+    35.20845822507662
+   ],
+   "target_speed_p95_mps": 0.40663468000008013,
+   "tracking_error_rms_mm": 9.817592902397342,
+   "tcp_lag_behind_target_ms": 40.0
+  }
+ },
+ "clutch": {
+  "engage_edges": 8,
+  "target_minus_tcp_at_engage_mm_max": 0.00048232691236311235
+ },
+ "gripper": {
+  "cmd_min": 0.01969176657499085,
+  "cmd_max": 1.0,
+  "close_open_cycles": 7,
+  "aperture_lag_ms": 90.0
+ },
+ "estop": {
+  "command_change_during_stop_rad": 2.6645352591003757e-14,
+  "joint_travel_2s_after_stop_rad": 0.0019028239663595459,
+  "cleared_ok": true,
+  "targets_received_during_stop": 149,
+  "ik_reported_braking_rad": 0.000118,
+  "ik_reported_hold_drift_rad": 0.000118
+ },
+ "latency_ms": {
+  "capture_to_hand": {
+   "p50": 59.20219100001134,
+   "p95": 72.77263910000684,
+   "p99": 88.41059632000011,
+   "n": 22194
+  },
+  "hand_to_target": {
+   "p50": 0.0,
+   "p95": 9.999999999990905,
+   "p99": 10.00000000000611,
+   "n": 22194
+  },
+  "target_to_command": {
+   "p50": 0.0,
+   "p95": 10.000000000005116,
+   "p99": 10.000000000047748,
+   "n": 22211
+  },
+  "capture_to_command": {
+   "p50": 61.556614999972226,
+   "p95": 75.91061250000308,
+   "p99": 92.75356060000279,
+   "n": 22211
+  }
+ },
+ "tracking_error_rms_mm_engaged_le_0p2": 5.139712693696055,
+ "rtf": 1.0000640377130716,
+ "pick_place": {
+  "attempts": 20,
+  "successes": 20,
+  "median_time_from_reset_s": 25.875,
+  "median_time_from_engage_s": 24.97,
+  "mean_regrasps": 2.6,
+  "success_rate_misalign_le_20deg": 1.0,
+  "success_rate_misalign_gt_20deg": 1.0,
+  "n_misalign_le_20deg": 7,
+  "outcomes": {
+   "success": 20
+  }
+ }
+}

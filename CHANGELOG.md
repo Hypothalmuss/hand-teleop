@@ -1,5 +1,9 @@
 # Changelog
 
+## Live session 2026-09-28
+- Guided live test (`scripts/live_session.py`, `scripts/analyze_live_session.py`): 20/20 pick-and-place, median 25.9 s (23.0 s after practice), latency p50/p95 62/76 ms incl. camera, tracking 5.1 mm RMS, e-stop hold drift 1.2e-4 rad.
+- Fixes: arm no longer snaps back after a sim reset (IK and mapper reset detection); domain-0 warning in the launch files; session logger spins ROS in its own thread.
+
 ## Post-phase-6: live webcam fixes
 - Camera window with the hand overlay during teleop (`window:=false` to disable); camera at the widest mode that holds 30 fps (1920x1080 here); fixed 15 fps caused by a single V4L2 buffer.
 - Steadier motion: heavier stationary smoothing, 0.3 m/s target speed limit, smoother IK feedforward; capture stamps include the camera pipeline (~41 ms).

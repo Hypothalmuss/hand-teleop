@@ -36,3 +36,17 @@ def rviz_nodes():
                     parameters=[{"robot_description": urdf, "use_sim_time": True}],
                     remappings=SIM_TIME_REMAPS))
     return out
+
+
+def domain_warning():
+    """LogInfo warning when running on the shared default domain (other robots' topics mix in)."""
+    import os
+
+    from launch.actions import LogInfo
+
+    if os.environ.get("ROS_DOMAIN_ID", "0") in ("", "0") and \
+            os.environ.get("ROS_LOCALHOST_ONLY") != "1":
+        return [LogInfo(msg="WARNING: ROS_DOMAIN_ID=0 without ROS_LOCALHOST_ONLY=1: other ROS "
+                            "systems on this network share /joint_states, /tf and /estop. "
+                            "export ROS_DOMAIN_ID=77 ROS_LOCALHOST_ONLY=1")]
+    return []

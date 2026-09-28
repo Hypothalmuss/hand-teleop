@@ -9,7 +9,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from diff_ik_controller import node_parameters
-from hand_teleop_bringup import SIM_TIME_REMAPS, config_dir
+from hand_teleop_bringup import SIM_TIME_REMAPS, config_dir, domain_warning
 
 
 def _nodes(context):
@@ -27,7 +27,7 @@ def _nodes(context):
 
 
 def generate_launch_description():
-    return LaunchDescription([
+    return LaunchDescription(domain_warning() + [
         DeclareLaunchArgument("viewer", default_value="false"),
         DeclareLaunchArgument("headless", default_value="false"),
         DeclareLaunchArgument("seed", default_value="0"),

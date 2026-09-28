@@ -102,6 +102,8 @@ class TeleopMapperCore:
         self.anchor_ee = None
         self.last_t = None
         self.right_seen_t = None
+        self.last_ee = None
+        self.reset_jump = float(ws["reset_jump_m"])
 
     def _dt(self, t: float) -> float:
         dt = self.default_dt if self.last_t is None else t - self.last_t
@@ -113,6 +115,16 @@ class TeleopMapperCore:
         self.last_t = t
         if self.target is None and ee_pos is not None:
             self.target = np.array(ee_pos, float)
+        # EE jumped (sim reset): drop the clutch for this update so the next open-palm frame
+        # re-anchors at the new pose instead of commanding the old one.
+        reset = (ee_pos is not None and self.last_ee is not None
+                 and float(np.linalg.norm(np.asarray(ee_pos) - self.last_ee)) > self.reset_jump)
+        if ee_pos is not None:
+            self.last_ee = np.array(ee_pos, float)
+        if reset:
+            self.engaged = False
+            self.target = self.last_ee.copy()
+            return MapperOutput(self.target.copy(), self.gripper, False)
 
         # --- clutch ---
         if right.present:

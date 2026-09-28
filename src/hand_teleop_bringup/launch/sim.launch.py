@@ -8,7 +8,7 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-from hand_teleop_bringup import SIM_TIME_REMAPS, config_dir, rviz_nodes
+from hand_teleop_bringup import SIM_TIME_REMAPS, config_dir, domain_warning, rviz_nodes
 
 
 def _nodes(context):
@@ -37,7 +37,7 @@ def _nodes(context):
 
 
 def generate_launch_description():
-    return LaunchDescription([
+    return LaunchDescription(domain_warning() + [
         DeclareLaunchArgument("viewer", default_value="false"),
         DeclareLaunchArgument("headless", default_value="false"),
         DeclareLaunchArgument("rviz", default_value="false"),
