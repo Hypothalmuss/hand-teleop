@@ -62,7 +62,10 @@ class TestTeleopChain(unittest.TestCase):
         rclpy.shutdown()
 
         cmd_rate = len(cmds) / dt
-        lat_rate = len(lat) / dt
+        # Per second of sim time: the fake hand runs on sim time, and on slow CI runners
+        # (software rendering) the sim can run below real time.
+        sim_t = [m.command_stamp.sec + m.command_stamp.nanosec * 1e-9 for _, m in lat]
+        lat_rate = (len(sim_t) - 1) / (sim_t[-1] - sim_t[0])
         travel = np.linalg.norm(np.ptp(np.array(ee[-600:]), axis=0))
         trk = np.array([m.tracking_error_m for _, m in lat[60:]])
         rms = float(np.sqrt(np.mean(trk ** 2)))
@@ -70,7 +73,8 @@ class TestTeleopChain(unittest.TestCase):
                         + (m.command_stamp.nanosec - m.capture_stamp.nanosec) * 1e-6
                         for _, m in lat])
         print(f"startup {startup:.1f} s; commands {cmd_rate:.0f} Hz; latency samples "
-              f"{lat_rate:.1f} Hz; engaged {np.mean(tgt):.0%}; TCP travel {travel * 100:.1f} cm;"
+              f"{lat_rate:.1f} Hz (sim time); engaged {np.mean(tgt):.0%}; "
+              f"TCP travel {travel * 100:.1f} cm;"
               f" tracking RMS {rms * 1000:.1f} mm; capture->command p50 "
               f"{np.percentile(e2e, 50):.0f} ms")
         self.assertLess(startup, 10.0)
