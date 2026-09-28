@@ -3,6 +3,8 @@
 Webcam hand teleoperation of a simulated UR5e + Robotiq 2F-85. Development machine: AMD Ryzen 5
 5600, NVIDIA RTX 3050, 1080p USB webcam (MJPG, 30 fps), ROS 2 Humble.
 
+Demo: [`demo.mp4`](demo.mp4) (27 s screencast: camera window + MuJoCo viewer, grasp and place).
+
 ## Live teleop (one operator, one 14-minute session, 2026-09-28)
 
 | Metric | Result | Target |
