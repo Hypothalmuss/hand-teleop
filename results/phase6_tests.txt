@@ -1,9 +1,0 @@
-$ colcon test --executor sequential && colcon test-result
-Summary: 62 tests, 0 errors, 0 failures, 5 skipped      (skipped: webcam test clips not recorded yet)
-
-Full chain with synthetic hand (teleop.launch.py hand:=fake viewer:=false, launch test):
-startup 0.8 s to first /arm/joint_command; commands 200 Hz; latency samples 30.1 Hz;
-engaged 100%; TCP travel 14.1 cm; tracking RMS 1.2 mm
-
-Full chain with offline video (teleop.launch.py video:=<synthetic clip>): first command 0.9 s after
-launch; capture->command p50 30 ms / p95 40 ms; tracking RMS 1.6 mm (results/latency_provisional_synthetic.md)

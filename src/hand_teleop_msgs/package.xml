@@ -3,7 +3,7 @@
 <package format="3">
   <name>hand_teleop_msgs</name>
   <version>0.1.0</version>
-  <description>Messages and services for the hand teleop to imitation learning project.</description>
+  <description>Messages and services for webcam hand teleoperation.</description>
   <maintainer email="roboticai@eagleprojects.tn">robotic</maintainer>
   <license>MIT</license>
 

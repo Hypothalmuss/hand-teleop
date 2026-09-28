@@ -97,7 +97,7 @@ def test_speed_limit(ws):
 
 
 def test_gripper_ramp_rate_limited_and_hold(ws):
-    # Plan: pinch ramp 0.2 -> 1.1 over 0.1 s. The ramp spans the calibrated range here (from
+    # Pinch ramp over 0.1 s, spanning the calibrated range (from
     # below pinch_closed to above pinch_open) so the test holds for any calibration.
     g = ws["gripper"]
     lo, hi = g["pinch_closed"] - 0.05, g["pinch_open"] + 0.1

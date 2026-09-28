@@ -1,45 +1,16 @@
 # Changelog
 
-## Live session 2026-09-28
-- Guided live test (`scripts/live_session.py`, `scripts/analyze_live_session.py`): 20/20 pick-and-place, median 25.9 s (23.0 s after practice), latency p50/p95 62/76 ms incl. camera, tracking 5.1 mm RMS, e-stop hold drift 1.2e-4 rad.
-- Fixes: arm no longer snaps back after a sim reset (IK and mapper reset detection); domain-0 warning in the launch files; session logger spins ROS in its own thread.
+## 1.0.0 (2026-09-28)
 
-## Post-phase-6: live webcam fixes
-- Camera window with the hand overlay during teleop (`window:=false` to disable); camera at the widest mode that holds 30 fps (1920x1080 here); fixed 15 fps caused by a single V4L2 buffer.
-- Steadier motion: heavier stationary smoothing, 0.3 m/s target speed limit, smoother IK feedforward; capture stamps include the camera pipeline (~41 ms).
-- Operator scripts use the same camera mode as live teleop; all 62 tests green.
+First standalone release: webcam hand teleoperation of a simulated UR5e + Robotiq 2F-85.
 
-## Phase 6: Integration (software complete; operator runs pending)
-- `teleop.launch.py` (sim, hand input webcam/video/fake, mapper, IK, optional console window and RViz), `keyboard_console`, `fake_hand`, sim `demo_view`, shared `SuccessDetector` and seed lists.
-- Scripts: `measure_latency.py`, `teleop_benchmark.py`, `record_demo_video.py/.sh`; full-chain integration launch test.
-- Results: 62 tests green (5 clip tests skipped); synthetic-input chain: startup 0.8 s, capture→command p50 30 ms, tracking 1.2–1.6 mm. Live latency, benchmark and demo video wait for webcam sessions.
-
-## Phase 5: Differential IK controller (C++)
-- `diff_ik_controller`: `Kinematics` (MuJoCo), `DiffIk` (DLS + truncated-pinv nullspace posture, singularity damping, joint-speed/limit handling, workspace guard, target-velocity feedforward), `EstopLatch`, 200 Hz node with latency samples and diagnostics.
-- gtests (Jacobian vs FD, 50/50 targets, wrist singularity, guard, latch) and launch tests (square, e-stop); `ik_sim.launch.py`, `scripts/square_tracking.py`.
-- Results: square RMS 3.8 mm at 0.1 m/s, LatencySample 30 Hz, hold drift 1.9e-4 rad (`results/phase5_*`).
-
-## Phase 4: Teleop mapping node
-- `teleop_mapper` node: open-palm/fist clutch with relative re-anchoring, 0.3 s absent hold, e-stop, 0.5 m/s target speed limit, pinch→gripper with a 2/s rate limit, RViz marker.
-- Pure `mapping.py` plus `scripts/calibrate_workspace.py` (9 poses, about 30 s).
-- Results: 10 unit tests green; smoke test sim + tracker (video) + mapper publishes `/teleop/target` at 30 Hz.
-
-## Phase 3: Hand tracking node
-- `hand_tracker` node: MediaPipe HandLandmarker (VIDEO mode, bundled model), One Euro filters, straightness-based open/fist with 3-frame debounce, presence logic, debug overlay (fps, latency, wall and sim clocks), `--video` offline mode.
-- Pure `one_euro.py`, `gestures.py`, `tracker.py`, `clip_eval.py`; setup and clip-recording scripts for the operator.
-- Results: 16 unit tests green, clip tests waiting for recordings; provisional frame→publish p95 30 ms (`results/phase3_latency.txt`).
-
-## Phase 2: Simulation ROS 2 node
-- `mujoco_sim` node: 500 Hz physics, 100 Hz control, threaded 30 Hz rendering, `/sim/clock`, reset service, tf; `scripted_trajectory` (sine / pick-and-place); `sim.launch.py` + RViz config.
-- `JointServo` (limit and step clamp plus velocity feedforward) shared by all command paths; config locator shared by every node.
-- Results: 99.8 Hz joint states, 29.8 Hz images, RTF 1.00, sine RMS 0.0015 rad, ROS pick-and-place 10/10 (`results/phase2_*.txt`).
-
-## Phase 1: MuJoCo scene
-- MjSpec-composed `scene.xml` (UR5e + 2F-85 + table + cube + target, `front`/`wrist` cameras, `home` keyframe) and a generated `model_names.yaml`.
-- Python kinematics oracle (FK, Jacobian, DLS IK), shared reset/command logic, scripted grasp and pick-and-place.
-- Results: scripted grasp-lift 200/200 (max hold slip 0.19 mm), 10 pytest tests green, `results/phase1_grasp.mp4`.
-
-## Phase 0: Repo and environment
-- Repo layout, MIT license, third-party licenses, pre-commit (ruff/black/clang-format), CI on ubuntu-22.04/Humble.
-- `config/*.yaml` created as the single source of truth; `hand_teleop_msgs` messages and services build.
-- ROS 2 Humble on Ubuntu 22.04 recorded; Docker and `lerobot` deferred (see README).
+- Hand tracking (MediaPipe) with One Euro filtering, straightness-based open/fist, pinch,
+  1080p/30 fps camera selection and a live camera window.
+- Teleop mapping with an open-palm/fist clutch, relative re-anchoring, speed limits and pinch → gripper.
+- C++17 differential IK controller: damped least squares, singularity damping, nullspace posture,
+  limits, workspace guard, latching e-stop, reset detection, latency metrics.
+- MuJoCo simulator node with a UR5e-servo-like joint command path, cameras, scene reset and sim clock.
+- Keyboard console, calibration and handedness wizards, guided live test session and analysis,
+  latency measurement, pick-and-place benchmark, demo video recorder.
+- Measured live: 20/20 pick-and-place, 62/76 ms p50/p95 capture-to-command latency, 5.1 mm
+  tracking RMS, sub-millimetre still jitter (`results/RESULTS.md`).

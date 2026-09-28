@@ -2,7 +2,7 @@
 """Trace a 10 cm square at 0.1 m/s through the running IK + sim and plot target vs TCP.
 
     ros2 launch hand_teleop_bringup ik_sim.launch.py headless:=true &
-    python3 scripts/square_tracking.py --out results/phase5_square_tracking.png
+    python3 scripts/square_tracking.py --out results/ik_square_tracking.png
 """
 
 import argparse
@@ -22,7 +22,7 @@ from hand_teleop_msgs.msg import TeleopTarget  # noqa: E402
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default="results/phase5_square_tracking.png")
+    ap.add_argument("--out", default="results/ik_square_tracking.png")
     ap.add_argument("--speed", type=float, default=0.10)
     args = ap.parse_args()
     rclpy.init(args=["--ros-args", "-p", "use_sim_time:=true", "-r", "/clock:=/sim/clock"])

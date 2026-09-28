@@ -1,136 +1,169 @@
-# Hand Teleop → Imitation Learning (UR5e + Robotiq 2F-85, MuJoCo, ROS 2)
+# Webcam Hand Teleop for Robot Arms (ROS 2 + MuJoCo)
 
-Webcam hand teleoperation of a simulated UR5e + Robotiq 2F-85, used to record pick-and-place
-demonstrations and train imitation-learning policies (ACT, Diffusion Policy). Simulation only,
-live camera, real human input. The full plan is in [`docs/project_plan.md`](docs/project_plan.md).
+Teleoperate a robot arm with your bare hands and an ordinary webcam. You don't need a leader arm, VR
+headset, data glove or SpaceMouse. The right hand drives the gripper position, the left hand's
+pinch opens and closes it, and a fist works as a clutch. The reference setup is a simulated
+Universal Robots UR5e with a Robotiq 2F-85 gripper in MuJoCo, built so the hand front end can be
+reused with other arms.
 
-> **Status:** phases 0–6 (teleop half) are implemented, tested and measured live
-> (`results/live_session/report.md`). Webcam test clips are still to be recorded. Phases 7–10 (learning) and
-> Docker come next. History is in `CHANGELOG.md`, and every deviation from the plan is recorded
-> in `results/tuning_notes.md`.
+> Measured live: **20/20 pick-and-place**, **62 ms** median camera-to-command latency,
+> **sub-millimetre** jitter with the hand held still. See [`results/RESULTS.md`](results/RESULTS.md).
 
-## Architecture
+![IK tracking a 10 cm square](results/ik_square_tracking.png)
 
-```mermaid
-flowchart LR
-  W[Webcam] --> H[hand_tracker<br/>Python, 30 Hz]
-  H -->|/hand/state| T[teleop_mapper<br/>Python, 30 Hz]
-  T -->|/teleop/target| IK[diff_ik_controller<br/>C++, 200 Hz]
-  IK -->|/arm/joint_command| S[mujoco_sim<br/>Python, 500 Hz physics]
-  S -->|/joint_states, /sim/ee_pose| IK
-  K[keyboard_console] -->|/estop, /sim/reset, /episode/*| IK
-```
+## Why
 
-- **hand_tracker**: MediaPipe HandLandmarker, One Euro filters, open/fist gestures (finger straightness, 3-frame debounce), pinch; `--video` offline mode.
-- **teleop_mapper**: right-hand position → TCP target, with open-palm/fist clutch and relative re-anchoring (the arm never jumps); left pinch → gripper.
-- **diff_ik_controller** (C++17): damped least-squares IK on MuJoCo Jacobians with singularity damping, nullspace posture, joint limits, workspace guard, latching e-stop and latency metrics. See its [README](src/diff_ik_controller/README.md) for the control law.
-- **mujoco_sim**: real-time physics, 30 Hz cameras in a separate render thread, `/sim/reset`, `/sim/clock`. Joint commands go through a UR-`servoj`-like servo with velocity feedforward.
+Teleoperation hardware (leader-follower arms, VR rigs, haptic devices) costs hundreds to thousands
+of dollars, and it's tied to one lab bench. This project is a **software-only alternative**: a
+webcam, a CPU for MediaPipe hand tracking, and a controller that turns noisy hand landmarks into
+smooth, safe arm motion. Use it to:
 
-## Results so far
+- drive a simulated arm for demos, teaching or testing;
+- prototype teleop interfaces before buying hardware;
+- as a base for your own robot: the hand → Cartesian-target part is robot-independent.
 
-| Metric | Value | Target | Source |
-| --- | --- | --- | --- |
-| Scripted grasp-lift stability | 200 / 200 | ≥ 199 / 200 | `results/phase1_tests.txt` |
-| Sim rates / real-time factor | 99.8 Hz joints, 29.8 Hz images, RTF 1.00 | 100 ± 5, 30 ± 3, ≥ 0.95 | `results/phase2_*.txt` |
-| IK square tracking (10 cm @ 0.1 m/s) | 3.8 mm RMS | < 5 mm | `results/phase5_square_tracking.png` |
-| Post-e-stop hold drift | 1.9e-4 rad | < 1e-3 rad | `results/phase5_tests.txt` |
-| Hand tracker processing (live, 1080p) | p50 20 ms, p95 23 ms typical (3 of 95 windows > 40 ms, max 53) | p95 < 40 ms | `results/live_session/report.md` |
-| Capture→command p50 / p95 (live, incl. camera) | 62 / 76 ms | < 120 / 200 ms | `results/latency.md` |
-| Tracking error RMS (live, ≤ 0.2 m/s) | 5.1 mm | < 15 mm | `results/latency.md` |
-| Teleop pick-and-place (live) | 20 / 20, median 25.9 s (23.0 s after practice) | ≥ 17 / 20, < 25 s | `results/teleop_benchmark.md` |
+## Features
 
-## Environment (recorded at phase 0)
+- **Hand tracking:** MediaPipe HandLandmarker at 30 fps at up to 1080p, One Euro filtering, and
+  open/fist/pinch gestures with debouncing. A live camera window shows the overlay (fps, latency,
+  clocks).
+- **Clutch with re-anchoring:** open palm = engaged, fist = hold. Re-engaging never makes the arm
+  jump, so you can "lift the mouse" to cover a large workspace with small hand motions.
+- **C++ differential IK:** damped least squares on MuJoCo Jacobians, singularity-aware damping,
+  nullspace posture, joint-speed and joint-limit handling, workspace guard. No MoveIt.
+- **Safety:** latched keyboard e-stop (never a gesture), a tracking-fault freeze, scene-reset
+  detection, and speed limits on target and gripper.
+- **Simulation:** the MuJoCo Menagerie UR5e + 2F-85, a table, a cube and a target, with front and wrist cameras.
+  Grasping is stable (200/200 scripted grasp-lifts).
+- **Measurement built in:** end-to-end latency stamped from the camera frame, a guided live test
+  session, a pick-and-place benchmark and a split-screen demo recorder.
+- **Tested:** 60+ unit, gtest and launch tests (`colcon test`), plus CI.
 
-| Item | Version |
-| --- | --- |
-| OS | Ubuntu 22.04 |
-| ROS 2 | **Humble** (the plan's fallback distro; the dev machine runs 22.04) |
-| Python | 3.10 |
-| MuJoCo | 3.12.0 (pip wheel; also provides `libmujoco.so` and headers for the C++ IK node) |
-| MediaPipe | 1.0.1 (Tasks API, bundled `hand_landmarker.task`) |
-| numpy | 1.26.4 (< 2 for Humble's `cv_bridge`) |
-| Dev CPU / GPU | AMD Ryzen 5 5600 / NVIDIA RTX 3050 |
+## Requirements
 
-`torch` and `lerobot` are pinned when the learning phases start.
+- Ubuntu 22.04 + **ROS 2 Humble** (developed and measured there)
+- Python 3.10, `pip install -r requirements.txt` (MuJoCo 3.12, MediaPipe 1.0.1, OpenCV, NumPy < 2)
+- Any USB webcam (MJPG recommended); the widest mode that holds 30 fps is picked automatically
+- A GPU helps for rendering the simulator but is not required
 
-## Quick start (native)
-
-Isolate ROS from other robots on the network first (domain 0 is shared on this LAN):
-`export ROS_DOMAIN_ID=77 ROS_LOCALHOST_ONLY=1`.
+## Install
 
 ```bash
+git clone <this repo> hand-teleop && cd hand-teleop
 source /opt/ros/humble/setup.bash
 python3 -m pip install -r requirements.txt
 colcon build --symlink-install && source install/setup.bash
-colcon test --executor sequential && colcon test-result --verbose
 ```
 
-| What | Command |
+**Isolate ROS first.** On a shared network the default domain can carry other robots'
+`/joint_states`:
+
+```bash
+export ROS_DOMAIN_ID=77 ROS_LOCALHOST_ONLY=1
+```
+
+## Quick start
+
+```bash
+python3 scripts/setup_hand_tracker.py      # once: raise your RIGHT hand (fixes handedness)
+python3 scripts/calibrate_workspace.py     # ~30 s: hold 9 poses shown on screen
+ros2 launch hand_teleop_bringup teleop.launch.py console:=terminal
+```
+
+| Hand / key | Action |
 | --- | --- |
-| Handedness setup (once) | `python3 scripts/setup_hand_tracker.py` |
-| Workspace calibration (< 60 s) | `python3 scripts/calibrate_workspace.py` |
-| Live teleop (viewer on) | `ros2 launch hand_teleop_bringup teleop.launch.py` |
-| Keyboard console | `ros2 run episode_recorder keyboard_console` (own terminal), or `console:=terminal` |
-| Teleop without a webcam | `ros2 launch hand_teleop_bringup teleop.launch.py hand:=fake` |
-| Offline hand input | `ros2 launch hand_teleop_bringup teleop.launch.py video:=clip.mp4` |
-| Sim + scripted pick-and-place | `ros2 launch hand_teleop_bringup sim.launch.py viewer:=true scripted:=pick_place episodes:=3` |
-| Sim + IK only | `ros2 launch hand_teleop_bringup ik_sim.launch.py viewer:=true` |
+| Right hand, open palm | Arm follows (engaged) |
+| Right hand, fist (or out of view 0.3 s) | Arm holds; move your hand, open again to continue |
+| Left hand, thumb–index pinch | Close / open the gripper |
+| `ESC` | Latched e-stop |
+| `c` | Clear e-stop (then open your palm to re-engage) |
+| `r` | Reset the scene to the next seed |
 
-A camera window with the hand overlay opens with teleop (`window:=false` to disable). The
-webcam runs at its widest 30 fps mode (`camera.width: max` in `config/filters.yaml`). Re-run
-`calibrate_workspace.py` whenever the camera mode or position changes.
+Without a webcam: `ros2 launch hand_teleop_bringup teleop.launch.py hand:=fake` (a synthetic hand).
+Offline: `video:=clip.mp4`. Disable the camera window with `window:=false`.
 
-Console keys: `ESC` e-stop (latched), `c` clear, `r` reset to the next seed, `space`
-start/stop episode, `d` discard, `s` mark success. Clutch: **open right palm = engaged,
-fist = hold**. The left thumb–index pinch drives the gripper.
+### Tips for steady, accurate control
+- Use bright, even light and no backlight, and mount the camera rigidly at chest height, 60–80 cm away.
+- Keep your palm facing the camera (tilting it reads as forward/back motion) and rest your elbow.
+- Use the clutch like lifting a mouse: work in a small comfortable area, make a fist, re-centre.
+- Freeze the arm (right fist) before gripping with the left hand.
+- Recalibrate whenever the camera, the operator or the seating changes.
 
-Rebuild the MuJoCo scene after changing `config/task.yaml` or the assets:
-`python3 -m ur5e_2f85_mujoco.build_scene` (writes the committed `scene.xml` + `model_names.yaml`).
-RViz (`rviz:=true`) shows the UR5e model when `ros-humble-ur-description` is installed.
+## Evaluate your setup
 
-## Operator checklist
+```bash
+python3 scripts/live_session.py            # guided test with on-screen prompts, logs everything
+python3 scripts/analyze_live_session.py recordings/live_session --out results/live_session
+python3 scripts/measure_latency.py --seconds 60        # latency while you teleoperate
+python3 scripts/teleop_benchmark.py                    # 20 seeded pick-and-place attempts
+scripts/record_demo_video.sh 60 results/demo.mp4       # split screen: camera | simulator
+```
 
-These need a person and a webcam. Each script writes its evidence to the repo.
+## Use it with another robot
 
-1. `python3 scripts/setup_hand_tracker.py` → sets `swap_handedness` in `config/filters.yaml`.
-2. `python3 scripts/record_test_clips.py` → three 10 s clips + ground truth in
-   `src/hand_tracker/test/data/`; then `colcon test --packages-select hand_tracker` runs the clip tests.
-3. Screenshot of the overlay with both hands labelled → `results/phase3_overlay.png`.
-4. `python3 scripts/calibrate_workspace.py` → `config/workspace.yaml` ranges.
-5. 30 s bag of live teleop targets: `ros2 bag record -s mcap -o results/phase4_teleop_target /teleop/target /teleop/target_marker`.
-6. Live latency: `python3 scripts/measure_latency.py --seconds 60` during teleop → `results/latency.{csv,md}`.
-7. Tuning pass: adjust `config/filters.yaml` / `workspace.yaml` / `ik.yaml`, one line per change in `results/tuning_notes.md`.
-8. Benchmark: `python3 scripts/teleop_benchmark.py` (20 seeded attempts) → `results/teleop_benchmark.{csv,md}`.
-9. Demo video: `scripts/record_demo_video.sh 60 results/demo_v1.mp4` (split screen, one pick-and-place, then an e-stop).
+- **Different simulated arm:** `diff_ik_controller` takes `scene_path`, `arm_joints` and `tcp_site`
+  as parameters. Point them at your MJCF, then adjust `config/ik.yaml` (home pose, limits) and the
+  workspace box in `config/workspace.yaml`.
+- **Your own controller or MoveIt Servo:** consume `/teleop/target`
+  (`hand_teleop_msgs/TeleopTarget`: pose in `base_link`, gripper 0..1, `engaged`). The mapper also
+  needs the current TCP pose on `sim/ee_pose` (remap it to your robot's pose topic).
+- **Real hardware:** replace `mujoco_sim` with a driver that subscribes to `/arm/joint_command` and
+  publishes `/joint_states`. This has **not** been tested on hardware. Add your robot's own safety
+  layer, and note that the sim's joint servo includes a velocity feedforward that your driver must
+  provide equivalently (see `docs/engineering_notes.md`).
+
+## Configuration
+
+Every rate, gain, range and threshold lives in `config/`:
+
+| File | Contents |
+| --- | --- |
+| `filters.yaml` | camera mode, One Euro filters, gesture thresholds, handedness, camera window |
+| `workspace.yaml` | workspace box, calibrated hand ranges, axis mapping, gains, speed limits, gripper |
+| `ik.yaml` | IK gains, damping, limits, home pose, servo feedforward, e-stop and reset thresholds |
+| `rates.yaml` | loop rates |
+| `task.yaml` | scene (table, cube, target), randomization ranges, success thresholds |
+| `seeds.txt` | scene seeds for resets and the benchmark |
 
 ## Layout
 
 ```
-config/                   every rate, gain, range, threshold and seed list (single source of truth)
-src/hand_teleop_msgs/     messages and services
-src/ur5e_2f85_mujoco/     MJCF assets (Menagerie), scene builder, kinematics oracle, shared task logic (no ROS)
-src/mujoco_sim_ros/       simulator node, scripted trajectories
-src/hand_tracker/         MediaPipe tracking node, filters, gestures, fake hand
-src/teleop_mapper/        hand → TCP target mapping node
+config/                   configuration (single source of truth)
+src/hand_tracker/         webcam + MediaPipe tracking node, filters, gestures, fake hand
+src/teleop_mapper/        hand -> TCP target, clutch, gripper
 src/diff_ik_controller/   C++ differential IK controller
-src/episode_recorder/     keyboard console (recorder: phase 7)
-src/hand_teleop_bringup/  launch files, RViz config; installs config/ for every node
-scripts/                  calibration, measurement, benchmark and recording tools
-results/                  committed evidence referenced by this README
+src/mujoco_sim_ros/       MuJoCo simulator node, scripted trajectories
+src/ur5e_2f85_mujoco/     MJCF assets, scene builder, kinematics, shared scene logic (no ROS)
+src/teleop_console/       keyboard console (e-stop, clear, reset)
+src/hand_teleop_msgs/     messages and services
+src/hand_teleop_bringup/  launch files, RViz config
+scripts/                  calibration, measurement, benchmark, recording
+docs/                     design and engineering notes
+results/                  measured results
 ```
 
-## Scene notes
+## Tests
 
-- `base_link` is the MuJoCo world frame: x toward the table, y left, z up.
-- The TCP site sits on the gripper base +z axis at the midpoint of the closed finger pads
-  (0.1547 m from the flange).
-- The UR5e joints use `gravcomp` + `actuatorgravcomp`, which models the gravity compensation
-  the real UR controller does internally.
-- The home keyframe is `[π, −π/2, π/2, −π/2, −π/2, 0]`. The plan's `pan = 0` puts the TCP
-  behind the base.
+```bash
+colcon test --executor sequential && colcon test-result --verbose
+python3 scripts/record_test_clips.py   # optional: record the 3 webcam clips for the tracker tests
+```
 
-## Licenses
+## Limitations
 
-Our code is MIT (`LICENSE`). Third-party models keep their licenses: UR5e MJCF (BSD-3) and
-Robotiq 2F-85 MJCF (BSD-2) from MuJoCo Menagerie (Apache-2.0 changes), and the MediaPipe hand
-landmarker model (Apache-2.0). See `THIRD_PARTY_LICENSES.md`.
+- Position-only control: the gripper orientation is fixed, pointing down.
+- Depth is estimated from apparent palm size (no depth camera), so it is the noisiest axis.
+- ~1 cm overshoot when the hand stops abruptly (velocity feedforward); being worked on.
+- Measured with one operator in one session.
+
+## Documentation
+
+- [`docs/design.md`](docs/design.md): architecture, topics, control law
+- [`docs/engineering_notes.md`](docs/engineering_notes.md): why each non-obvious default is what it is
+- [`results/RESULTS.md`](results/RESULTS.md): measured results
+
+## License and credits
+
+MIT (`LICENSE`). The robot models come from [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie):
+UR5e (BSD-3) and Robotiq 2F-85 (BSD-2). Hand tracking uses
+[MediaPipe](https://developers.google.com/mediapipe) (Apache-2.0). See `THIRD_PARTY_LICENSES.md`.

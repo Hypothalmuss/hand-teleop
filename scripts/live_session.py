@@ -2,7 +2,7 @@
 """Guided live teleop test session: on-screen prompts + full data logging.
 
     ros2 launch hand_teleop_bringup teleop.launch.py demo_view:=true &
-    python3 scripts/live_session.py --attempts 20 --out datasets/live_session
+    python3 scripts/live_session.py --attempts 20 --out recordings/live_session
 
 A prompt window tells the operator what to do; every topic of interest is logged with the
 current protocol step. Keys in the prompt window: n = skip pick-and-place attempt, q = end.
@@ -37,7 +37,7 @@ from hand_teleop_msgs.msg import (
     ObjectPoses,
     TeleopTarget,
 )
-from hand_teleop_msgs.srv import ResetEpisode
+from hand_teleop_msgs.srv import ResetScene
 from ur5e_2f85_mujoco import load_model_names
 from ur5e_2f85_mujoco.config import find_config_dir, load_config
 from ur5e_2f85_mujoco.task import SuccessDetector, load_seeds
@@ -68,7 +68,7 @@ class Session:
         self.task = load_config("task.yaml", cfg)
         self.names = load_model_names()
         self.lo, self.hi = self.names["gripper_joint_range"]
-        self.seeds = load_seeds(cfg / "seeds_train.txt")[: args.attempts]
+        self.seeds = load_seeds(cfg / "seeds.txt")[: args.attempts]
         self.args = args
         rclpy.init(args=["--ros-args", "-p", "use_sim_time:=true", "-r", "/clock:=/sim/clock"])
         self.node = n = rclpy.create_node("live_session")
@@ -87,7 +87,7 @@ class Session:
         n.create_subscription(ObjectPoses, "/sim/object_poses", self._on_obj, 100)
         n.create_subscription(DiagnosticArray, "/diagnostics", self._on_diag, 10)
         self.pub_estop = n.create_publisher(Bool, "/estop", LATCHED)
-        self.reset_cli = n.create_client(ResetEpisode, "/sim/reset")
+        self.reset_cli = n.create_client(ResetScene, "/sim/reset")
         self.clear_cli = n.create_client(Trigger, "/estop/clear")
         # ROS callbacks run in their own thread: the GUI loop must never throttle logging
         # (one spin_once per GUI frame fell seconds behind ~560 msg/s and dropped messages).
@@ -231,7 +231,7 @@ class Session:
 
     def reset(self, seed):
         return self.wait(self.reset_cli.call_async(
-            ResetEpisode.Request(seed=seed, randomize_target=False)), 5.0)
+            ResetScene.Request(seed=seed, randomize_target=False)), 5.0)
 
     def pick_place(self):
         for i, seed in enumerate(self.seeds):
@@ -305,7 +305,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--attempts", type=int, default=20)
     ap.add_argument("--timeout", type=float, default=60.0)
-    ap.add_argument("--out", default="datasets/live_session")
+    ap.add_argument("--out", default="recordings/live_session")
     ap.add_argument("--skip-protocol", action="store_true", help="pick-and-place only")
     ap.add_argument("--step-scale", type=float, default=1.0, help="<1 shortens steps (dry run)")
     args = ap.parse_args()

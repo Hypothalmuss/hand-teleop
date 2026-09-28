@@ -1,9 +1,9 @@
 """Scripted joint commands for the simulator: a joint-space sine sweep or scripted
-pick-and-place episodes (Python IK oracle). Runs on sim time.
+pick-and-place runs (Python IK oracle). Runs on sim time.
 
-    ros2 run mujoco_sim_ros scripted_trajectory --ros-args -p mode:=pick_place -p episodes:=3
+    ros2 run mujoco_sim_ros scripted_trajectory --ros-args -p mode:=pick_place -p runs:=3
 
-Each finished pick-and-place episode is reported on ``scripted/result`` as JSON.
+Each finished pick-and-place run is reported on ``scripted/result`` as JSON.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import String
 
 from hand_teleop_msgs.msg import JointCommand, ObjectPoses
-from hand_teleop_msgs.srv import ResetEpisode
+from hand_teleop_msgs.srv import ResetScene
 from ur5e_2f85_mujoco import load_model, load_model_names
 from ur5e_2f85_mujoco.config import find_config_dir, load_config
 from ur5e_2f85_mujoco.kinematics import Kinematics
@@ -32,7 +32,7 @@ class ScriptedTrajectory(Node):
         self.declare_parameter("config_dir", "")
         self.declare_parameter("mode", "pick_place")      # sine | pick_place
         self.declare_parameter("seed", 0)
-        self.declare_parameter("episodes", 1)
+        self.declare_parameter("runs", 1)
         self.declare_parameter("sine_amplitude", 0.3)     # rad
         self.declare_parameter("sine_frequency", 0.2)     # Hz
         cfg_dir = find_config_dir(self.get_parameter("config_dir").value or None)
@@ -46,14 +46,14 @@ class ScriptedTrajectory(Node):
         self.pub_result = self.create_publisher(String, "scripted/result", 10)
         self.create_subscription(JointState, "joint_states", self._on_js, 10)
         self.create_subscription(ObjectPoses, "sim/object_poses", self._on_obj, 10)
-        self.reset_cli = self.create_client(ResetEpisode, "sim/reset")
+        self.reset_cli = self.create_client(ResetScene, "sim/reset")
 
         self.q_meas = None
         self.objects = None
         self.t0 = None
         self.ctl = None
         self.target_pos = None
-        self.episode = 0
+        self.run_index = 0
         self.seed = int(self.get_parameter("seed").value)
         self.waiting_reset = False
         self.timer = self.create_timer(1.0 / self.rates["control"], self._on_timer)
@@ -89,11 +89,11 @@ class ScriptedTrajectory(Node):
         self._publish(q, 0.5 + 0.5 * np.cos(2 * np.pi * f * t))
 
     # ---- pick and place -------------------------------------------------------------------
-    def _start_episode(self) -> None:
+    def _start_run(self) -> None:
         if not self.reset_cli.service_is_ready():
             return
         self.waiting_reset = True
-        req = ResetEpisode.Request(seed=self.seed + self.episode, randomize_target=False)
+        req = ResetScene.Request(seed=self.seed + self.run_index, randomize_target=False)
         self.reset_cli.call_async(req).add_done_callback(self._on_reset_done)
 
     def _on_reset_done(self, fut) -> None:
@@ -112,8 +112,8 @@ class ScriptedTrajectory(Node):
         if self.waiting_reset:
             return
         if self.ctl is None:
-            if self.episode < int(self.get_parameter("episodes").value):
-                self._start_episode()
+            if self.run_index < int(self.get_parameter("runs").value):
+                self._start_run()
             return
         t = self._now() - self.t0
         q, grip, _ = self.ctl.command(t)
@@ -121,7 +121,7 @@ class ScriptedTrajectory(Node):
         if t > self.ctl.duration + 0.5:
             self._report()
             self.ctl = None
-            self.episode += 1
+            self.run_index += 1
 
     def _report(self) -> None:
         cube = self.objects.cube.position if self.objects else None
@@ -129,7 +129,7 @@ class ScriptedTrajectory(Node):
         if cube is not None:
             dist = float(np.hypot(cube.x - self.target_pos[0], cube.y - self.target_pos[1]))
         ok = bool(dist < self.task["success"]["xy_tol"])
-        result = {"episode": self.episode, "seed": self.seed + self.episode,
+        result = {"run": self.run_index, "seed": self.seed + self.run_index,
                   "dist_xy": dist, "success": ok}
         self.pub_result.publish(String(data=json.dumps(result)))
         self.get_logger().info(f"pick_place result {result}")

@@ -6,7 +6,7 @@ FS = 30.0
 
 
 def make():
-    # Plan defaults; landmarks are normalized, value_scale = 640 px image width.
+    # Standard One Euro defaults; landmarks are normalized, value_scale = 640 px image width.
     return OneEuroFilter(min_cutoff=1.0, beta=0.007, d_cutoff=1.0, value_scale=640)
 
 

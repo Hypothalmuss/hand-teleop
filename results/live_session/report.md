@@ -3,7 +3,7 @@
 One operator, live webcam (1920x1080 MJPG, 30 fps), guided protocol (`scripts/live_session.py`)
 plus 20 seeded pick-and-place attempts. Analysis: `scripts/analyze_live_session.py` →
 `metrics.json`, `attempts.csv`, `latency.csv` and the plots in this folder. Raw data (412k
-records) and the full session video stay in `datasets/live_session/` (not committed).
+records) and the full session video stay in `recordings/live_session/` (not committed).
 
 Setup: ROS 2 Humble, `ROS_DOMAIN_ID=77`, `ROS_LOCALHOST_ONLY=1`. A first attempt on the default
 domain 0 was aborted and discarded: another robot system on the network (a Gazebo quadruped)
@@ -12,12 +12,12 @@ detections and a tracking fault). Config: One Euro landmarks min_cutoff 0.5, pal
 beta 0.007; target speed limit 0.3 m/s; IK feedforward alpha 0.4. Calibration was run right
 before the session.
 
-## Headline results vs plan targets
+## Headline results vs targets
 
-| Metric | Result | Plan target | |
+| Metric | Result | Target | |
 | --- | --- | --- | --- |
 | Teleop pick-and-place success | **20 / 20** | ≥ 17 / 20 | met |
-| Median completion time (from reset) | **25.9 s** (last 10 attempts: 23.0 s) | < 25 s | missed overall, met after learning |
+| Median completion time (from reset) | **25.9 s** (last 10 attempts: 23.0 s) | < 25 s | missed overall, met after practice |
 | End-to-end latency capture→command p50 / p95 / p99 | **62 / 76 / 93 ms** | < 120 / < 200 ms | met |
 | Tracking error RMS (engaged, target ≤ 0.2 m/s) | **5.1 mm** | < 15 mm | met |
 | Post-e-stop hold drift (IK-reported) | **1.2e-4 rad**; command change during stop 2.7e-14 rad | < 1e-3 rad | met |
@@ -53,14 +53,14 @@ queue). The tracker stage (capture→hand) is 59 ms p50; mapper and IK stages ar
 ## Pick and place
 
 - 20/20 successes, times 13.8–54.3 s (p25/p50/p75 = 21.9 / 25.9 / 31.9 s).
-- **Clear learning curve:** median 30.9 s for attempts 1–10 vs 23.0 s for 11–20
+- **Operators improve quickly:** median 30.9 s for attempts 1–10 vs 23.0 s for 11–20
   (corr(attempt #, time) = −0.54).
 - **Grasping is the bottleneck:** 81 gripper closes over 20 attempts, of which 11 were
   sub-0.3 s flicker, so there were about 2.5 real re-grasps per attempt (median close held 0.9 s). Most time
   goes into lining up the grasp.
 - **Cube yaw did not matter** (the gripper orientation is fixed, cube yaw random): 0–15°
   misalignment had 4.4 closes on average, 15–30° had 3.4, and 30–45° had 3.3. Correlation of misalignment with
-  time is 0.07. The concern raised in the project critique is not supported (n = 20, one operator).
+  time is 0.07. An earlier concern that fixed gripper yaw would hurt grasps is not supported (n = 20, one operator).
 - Gripper: full command range 0.02–1.0; aperture lags the command by ~90 ms (2/s rate limit
   plus the finger dynamics).
 
@@ -69,11 +69,11 @@ queue). The tracker stage (capture→hand) is 59 ms p50; mapper and IK stages ar
 The command froze exactly (2.7e-14 rad change), 149 targets that arrived during the stop were
 ignored, and the clear succeeded. The IK reported 1.2e-4 rad braking and 1.2e-4 rad hold drift. Joint travel
 over the 2 s after the stop instant was 1.9e-3 rad, which includes the arm decelerating from
-teleop speed (see `tuning_notes.md` on how drift is defined).
+teleop speed (see `docs/engineering_notes.md` on how drift is defined).
 
 ## Conclusions
 
-1. The teleop chain meets every Phase 6 target except median time (25.9 s vs 25 s), and it met that one
+1. The teleop chain meets every target except median time (25.9 s vs 25 s), and it met that one
    once the operator had practised (23.0 s over the last 10).
 2. Sensor noise is no longer the limiting factor: still jitter is sub-millimetre after filtering.
    What remains is **stopping overshoot (~1 cm)** from the IK feedforward and **grasp alignment

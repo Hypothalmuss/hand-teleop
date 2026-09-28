@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = "episode_recorder"
+package_name = "teleop_console"
 
 setup(
     name=package_name,
@@ -14,10 +14,10 @@ setup(
     zip_safe=True,
     maintainer="robotic",
     maintainer_email="roboticai@eagleprojects.tn",
-    description="Keyboard console and episode recorder",
+    description="Keyboard console: e-stop, clear, scene reset",
     license="MIT",
     tests_require=["pytest"],
     entry_points={"console_scripts": [
-        "keyboard_console = episode_recorder.keyboard_console:main",
+        "keyboard_console = teleop_console.keyboard_console:main",
     ]},
 )

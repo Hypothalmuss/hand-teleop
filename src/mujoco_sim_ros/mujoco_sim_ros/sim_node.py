@@ -27,14 +27,14 @@ from sensor_msgs.msg import Image, JointState
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 
 from hand_teleop_msgs.msg import JointCommand, ObjectPoses
-from hand_teleop_msgs.srv import ResetEpisode
+from hand_teleop_msgs.srv import ResetScene
 from ur5e_2f85_mujoco import load_model, load_model_names
 from ur5e_2f85_mujoco.config import find_config_dir, load_config
 from ur5e_2f85_mujoco.kinematics import mat_to_quat
 from ur5e_2f85_mujoco.task import (
     SceneIndex,
     make_servo,
-    reset_episode,
+    reset_scene,
 )
 
 STALE_COMMAND_S = 0.5
@@ -109,7 +109,7 @@ class MujocoSim(Node):
         if self.demo_view:
             self.pub_img["demo"] = self.create_publisher(Image, "sim/demo/image", 2)
         self.create_subscription(JointCommand, "arm/joint_command", self._on_command, 10)
-        self.create_service(ResetEpisode, "sim/reset", self._on_reset)
+        self.create_service(ResetScene, "sim/reset", self._on_reset)
         self.tf = TransformBroadcaster(self)
         static = StaticTransformBroadcaster(self)
         st = TransformStamped()
@@ -123,8 +123,8 @@ class MujocoSim(Node):
         self.render_queue: queue.Queue = queue.Queue(maxsize=1)
         self.running = True
         self.viewer = None
-        self.physics_thread = threading.Thread(target=self._physics_loop, daemon=True)
-        self.render_thread = threading.Thread(target=self._render_loop, daemon=True)
+        self.physics_thread = threading.Thread(target=self._quiet(self._physics_loop), daemon=True)
+        self.render_thread = threading.Thread(target=self._quiet(self._render_loop), daemon=True)
         if self.get_parameter("render").value:
             self.render_thread.start()
         self.physics_thread.start()
@@ -132,9 +132,19 @@ class MujocoSim(Node):
             f"mujoco_sim up: {self.rates['physics']:.0f} Hz physics, "
             f"{self.rates['control']:.0f} Hz control, config {cfg_dir}")
 
+    def _quiet(self, fn):
+        """Thread body that ends silently if ROS shuts down underneath it (Ctrl-C)."""
+        def run():
+            try:
+                fn()
+            except Exception:
+                if rclpy.ok() and self.running:
+                    raise
+        return run
+
     # ---- command / reset ------------------------------------------------------------------
     def _reset_scene(self, seed: int, randomize_target: bool = False) -> dict:
-        ep = reset_episode(self.model, self.data, self.idx, self.task, seed, randomize_target)
+        ep = reset_scene(self.model, self.data, self.idx, self.task, seed, randomize_target)
         self.servo.reset(self.data.ctrl[self.idx.arm_act].copy(), 1.0)
         self.last_cmd_wall = None
         self.sim_time += self.task["settle_steps"] * self.model.opt.timestep
@@ -147,7 +157,7 @@ class MujocoSim(Node):
             self.last_cmd_wall = time.monotonic()
             self._stale_warned = False
 
-    def _on_reset(self, req: ResetEpisode.Request, res: ResetEpisode.Response):
+    def _on_reset(self, req: ResetScene.Request, res: ResetScene.Response):
         with self.lock:
             ep = self._reset_scene(int(req.seed), bool(req.randomize_target))
             try:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Analyse a recorded live session (scripts/live_session.py) into results/.
 
-    python3 scripts/analyze_live_session.py datasets/live_session --out results/live_session
+    python3 scripts/analyze_live_session.py recordings/live_session --out results/live_session
 
 Writes report.md, metrics.json, attempts.csv, latency.csv and plots.
 """

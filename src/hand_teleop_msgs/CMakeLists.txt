@@ -14,8 +14,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/JointCommand.msg"
   "msg/ObjectPoses.msg"
   "msg/LatencySample.msg"
-  "srv/ResetEpisode.srv"
-  "srv/EpisodeControl.srv"
+  "srv/ResetScene.srv"
   DEPENDENCIES std_msgs geometry_msgs builtin_interfaces
 )
 

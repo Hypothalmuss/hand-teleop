@@ -28,7 +28,7 @@ def _nodes(context):
         nodes.append(Node(
             package="mujoco_sim_ros", executable="scripted_trajectory", output="screen",
             parameters=[{"config_dir": cfg, "mode": scripted, "seed": seed,
-                         "episodes": int(LaunchConfiguration("episodes").perform(context)),
+                         "runs": int(LaunchConfiguration("runs").perform(context)),
                          "use_sim_time": True}],
             remappings=SIM_TIME_REMAPS))
     if LaunchConfiguration("rviz").perform(context) == "true" and not headless:
@@ -44,7 +44,7 @@ def generate_launch_description():
         DeclareLaunchArgument("seed", default_value="0"),
         DeclareLaunchArgument("scripted", default_value="none",
                               description="none | sine | pick_place"),
-        DeclareLaunchArgument("episodes", default_value="1"),
+        DeclareLaunchArgument("runs", default_value="1"),
         DeclareLaunchArgument("rt_factor", default_value="1.0"),
         OpaqueFunction(function=_nodes),
     ])

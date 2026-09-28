@@ -1,4 +1,0 @@
-WARNING Fri Sep 25 14:20:42 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e_2f85_pickplace', policy is 'warning'
-impratio: parent has 1 (default), child has 10, keeping parent value
-cone: parent has 0 (default), child has 1, keeping parent value
-

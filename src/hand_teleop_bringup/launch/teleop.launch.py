@@ -6,7 +6,7 @@
     ros2 launch hand_teleop_bringup teleop.launch.py console:=terminal  # console in a new window
 
 The keyboard console needs a terminal; by default run it separately:
-    ros2 run episode_recorder keyboard_console
+    ros2 run teleop_console keyboard_console
 """
 
 import os
@@ -67,10 +67,10 @@ def _nodes(context):
                           remappings=SIM_TIME_REMAPS))
     console = arg("console")
     if console == "terminal":
-        nodes.append(Node(package="episode_recorder", executable="keyboard_console",
+        nodes.append(Node(package="teleop_console", executable="keyboard_console",
                           prefix=terminal_prefix(), parameters=[{"config_dir": cfg}]))
     else:
-        nodes.append(LogInfo(msg="keyboard console: run `ros2 run episode_recorder "
+        nodes.append(LogInfo(msg="keyboard console: run `ros2 run teleop_console "
                                  "keyboard_console` in another terminal (or console:=terminal)"))
     if arg("rviz") == "true":
         nodes += rviz_nodes()

@@ -15,7 +15,7 @@ from . import load_model, load_model_names
 from .config import load_config
 from .kinematics import Kinematics
 from .scripted import ScriptedController, ScriptParams
-from .task import SceneIndex, cube_pose, cube_speed, make_servo, reset_episode
+from .task import SceneIndex, cube_pose, cube_speed, make_servo, reset_scene
 
 __all__ = ["load_config", "run_grasp_trial"]
 
@@ -32,7 +32,7 @@ def run_grasp_trial(seed: int, task: dict | None = None, rates: dict | None = No
     kin = Kinematics(model, names)
     ctl = ScriptedController(kin, params or ScriptParams())
 
-    ep = reset_episode(model, data, idx, task, seed)
+    ep = reset_scene(model, data, idx, task, seed)
     servo = make_servo(model, idx, rates, load_config("ik.yaml"))
     servo.reset(data.ctrl[idx.arm_act].copy())
     cube_yaw = 2 * np.arctan2(ep["cube_quat"][3], ep["cube_quat"][0])

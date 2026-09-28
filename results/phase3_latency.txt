@@ -1,9 +1,0 @@
-PROVISIONAL (no webcam on the dev machine; replace with a live-webcam run):
-input: 10 s 640x480 @ 30 fps video synthesized from a stock two-hand photo (shifted every frame)
-hand_tracker node --video, frame read -> /hand/state publish:  p50 25.9 ms, p95 30.0 ms (31 fps)
-offline clip_eval (processing only):                            p50 24.9 ms, p95 29.5 ms
-cpu: AMD Ryzen 5 5600 6-Core Processor, MediaPipe 1.0.1 CPU (XNNPACK)
-target: p95 < 40 ms
-
-To measure live: ros2 run hand_tracker hand_tracker   (logs p50/p95 every 300 frames)
-or: python3 -m hand_tracker.clip_eval src/hand_tracker/test/data/right_open_sweep.mp4

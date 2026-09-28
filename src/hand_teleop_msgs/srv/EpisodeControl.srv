@@ -1,5 +1,0 @@
-bool success
-bool discard
----
-bool ok
-string message

@@ -1,7 +1,6 @@
-"""Shared task logic: episode reset/randomization, gripper mapping, command application.
-
-The ROS simulator node and the headless learning env both import these, so a reset with a
-given seed and a given command stream produce identical physics in both.
+"""Shared task logic: scene reset/randomization, gripper mapping, command application,
+success detection. Pure MuJoCo, no ROS, so a reset with a given seed and a given command stream
+produce identical physics wherever they are used (ROS simulator, scripts, tests).
 """
 
 from __future__ import annotations
@@ -66,7 +65,7 @@ def gripper_aperture(data: mujoco.MjData, idx: SceneIndex) -> float:
     return float(np.clip(1.0 - (data.qpos[idx.grip_qpos] - lo) / (hi - lo), 0.0, 1.0))
 
 
-def sample_episode(seed: int, task: dict, randomize_target: bool) -> dict:
+def sample_scene(seed: int, task: dict, randomize_target: bool) -> dict:
     """Deterministic cube (and optionally target) placement for a seed."""
     rng = np.random.default_rng(seed)
     sp = task["spawn"]
@@ -78,10 +77,10 @@ def sample_episode(seed: int, task: dict, randomize_target: bool) -> dict:
     return {"cube_xy": cube_xy, "cube_yaw": cube_yaw, "target_pos": target}
 
 
-def reset_episode(model: mujoco.MjModel, data: mujoco.MjData, idx: SceneIndex, task: dict,
+def reset_scene(model: mujoco.MjModel, data: mujoco.MjData, idx: SceneIndex, task: dict,
                   seed: int, randomize_target: bool = False) -> dict:
     """Reset to the home keyframe, place cube/target for ``seed``, settle. Returns poses."""
-    ep = sample_episode(seed, task, randomize_target)
+    ep = sample_scene(seed, task, randomize_target)
     mujoco.mj_resetDataKeyframe(model, data, idx.home_key)
     hs = task["cube"]["half_size"]
     yaw = ep["cube_yaw"]
@@ -110,8 +109,7 @@ class JointServo:
        ``tau = kp (ctrl - q) - kv qdot``; without the feedforward they lag by
        ``kv / kp * qdot`` (0.2 s x velocity).
 
-    The ROS simulator and the headless env both use this class, so a command stream produces
-    identical physics in both.
+    Every command path (ROS simulator, scripts, tests) uses this class.
     """
 
     def __init__(self, model: mujoco.MjModel, idx: SceneIndex, dt_tick: float,
@@ -192,7 +190,7 @@ class SuccessDetector:
     """Task success: cube centre within ``xy_tol`` of the target centre, cube centre below
     ``z_max``, gripper aperture above ``gripper_min``, all held for ``hold_s`` seconds.
 
-    Shared by the recorder, the teleop benchmark and the headless env (import, never copy).
+    Shared by the teleop benchmark, the live-session analysis and the tests.
     """
 
     def __init__(self, task: dict):

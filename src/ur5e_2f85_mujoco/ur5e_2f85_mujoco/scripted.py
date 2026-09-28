@@ -1,6 +1,6 @@
 """Scripted Cartesian grasp / pick-and-place using the Python IK oracle.
 
-Used by the phase-1 grasp tests, the demo clip and (phase 2) the scripted ROS trajectory.
+Used by the grasp tests, the scene clip and the scripted ROS trajectory.
 A plan is a list of straight-line Cartesian segments with a gripper command each; the
 controller interpolates them in time and solves IK warm-started from the last solution.
 """

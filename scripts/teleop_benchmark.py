@@ -21,7 +21,7 @@ import rclpy
 from sensor_msgs.msg import JointState
 
 from hand_teleop_msgs.msg import JointCommand, ObjectPoses, TeleopTarget
-from hand_teleop_msgs.srv import ResetEpisode
+from hand_teleop_msgs.srv import ResetScene
 from ur5e_2f85_mujoco import load_model_names
 from ur5e_2f85_mujoco.config import find_config_dir, load_config
 from ur5e_2f85_mujoco.task import SuccessDetector, load_seeds
@@ -31,7 +31,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--attempts", type=int, default=20)
     ap.add_argument("--timeout", type=float, default=60.0)
-    ap.add_argument("--seeds-file", default="seeds_train.txt")
+    ap.add_argument("--seeds-file", default="seeds.txt")
     ap.add_argument("--out-dir", default="results")
     args = ap.parse_args()
     cfg = find_config_dir()
@@ -57,7 +57,7 @@ def main() -> None:
                              lambda m: st.__setitem__("engaged", m.engaged), 10)
     node.create_subscription(JointCommand, "/arm/joint_command",
                              lambda m: st.__setitem__("grip_cmd", m.gripper), 10)
-    reset = node.create_client(ResetEpisode, "/sim/reset")
+    reset = node.create_client(ResetScene, "/sim/reset")
     if not reset.wait_for_service(timeout_sec=10.0):
         raise SystemExit("/sim/reset not available: start teleop.launch.py first")
     now = lambda: node.get_clock().now().nanoseconds * 1e-9  # noqa: E731
@@ -65,7 +65,7 @@ def main() -> None:
     rows = []
     stdin_open = True
     for i, seed in enumerate(seeds):
-        fut = reset.call_async(ResetEpisode.Request(seed=seed, randomize_target=False))
+        fut = reset.call_async(ResetScene.Request(seed=seed, randomize_target=False))
         rclpy.spin_until_future_complete(node, fut)
         det = SuccessDetector(task)
         t_reset, t_engage, closes, closed = now(), None, 0, False

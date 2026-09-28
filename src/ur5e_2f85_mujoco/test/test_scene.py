@@ -1,4 +1,4 @@
-"""Phase-1 scene tests (headless, no ROS)."""
+"""Scene, physics and kinematics tests (headless, no ROS)."""
 
 import os
 
@@ -20,7 +20,7 @@ from ur5e_2f85_mujoco.build_scene import (  # noqa: E402
     load_task_config,
 )
 from ur5e_2f85_mujoco.kinematics import Kinematics  # noqa: E402
-from ur5e_2f85_mujoco.task import SceneIndex, reset_episode  # noqa: E402
+from ur5e_2f85_mujoco.task import SceneIndex, reset_scene  # noqa: E402
 from ur5e_2f85_mujoco.trials import load_config, run_grasp_trial  # noqa: E402
 
 
@@ -110,7 +110,7 @@ def test_determinism(model, names):
 
     def run(seed):
         data = mujoco.MjData(model)
-        reset_episode(model, data, idx, task, seed)
+        reset_scene(model, data, idx, task, seed)
         data.ctrl[idx.arm_act] += 0.2  # move the arm so contacts/dynamics are exercised
         for _ in range(1000):
             mujoco.mj_step(model, data)
@@ -201,10 +201,9 @@ def test_success_detector_conditions_and_hold():
     assert not det.update(1.65, on, tgt, 1.0)
 
 
-def test_seed_lists_disjoint():
+def test_seed_list():
     from ur5e_2f85_mujoco.config import find_config_dir
     from ur5e_2f85_mujoco.task import load_seeds
 
-    d = find_config_dir()
-    train, ev = load_seeds(d / "seeds_train.txt"), load_seeds(d / "seeds_eval.txt")
-    assert len(train) == 200 and len(ev) == 100 and not set(train) & set(ev)
+    seeds = load_seeds(find_config_dir() / "seeds.txt")
+    assert len(seeds) >= 20 and len(set(seeds)) == len(seeds)

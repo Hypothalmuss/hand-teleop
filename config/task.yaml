@@ -16,7 +16,7 @@ spawn:
   cube_x: [0.35, 0.55]
   cube_y: [0.05, 0.25]
   cube_yaw: [-3.14159265, 3.14159265]
-  target_x: [0.40, 0.50]  # used only when randomize_target=true (dataset B / OOD)
+  target_x: [0.40, 0.50]  # used only when a reset asks for randomize_target
   target_y: [-0.30, -0.10]
 settle_steps: 100
 success:

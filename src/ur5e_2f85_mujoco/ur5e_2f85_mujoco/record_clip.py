@@ -1,6 +1,6 @@
-"""Render a clip of scripted pick-and-place episodes (offscreen, EGL) to an mp4.
+"""Render a clip of scripted pick-and-place runs (offscreen, EGL) to an mp4.
 
-    MUJOCO_GL=egl python3 -m ur5e_2f85_mujoco.record_clip --out results/phase1_grasp.mp4
+    MUJOCO_GL=egl python3 -m ur5e_2f85_mujoco.record_clip --out results/scene_grasp_clip.mp4
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import numpy as np  # noqa: E402
 from . import load_model, load_model_names  # noqa: E402
 from .kinematics import Kinematics  # noqa: E402
 from .scripted import ScriptedController  # noqa: E402
-from .task import SceneIndex, make_servo, reset_episode  # noqa: E402
+from .task import SceneIndex, make_servo, reset_scene  # noqa: E402
 from .trials import load_config  # noqa: E402
 
 FPS = 30
@@ -26,7 +26,7 @@ W, H = 960, 540
 
 
 def run_pick_place(model, data, idx, kin, task, rates, seed, on_tick=None) -> dict:
-    ep = reset_episode(model, data, idx, task, seed)
+    ep = reset_scene(model, data, idx, task, seed)
     servo = make_servo(model, idx, rates, load_config("ik.yaml"))
     servo.reset(data.ctrl[idx.arm_act].copy())
     ctl = ScriptedController(kin)
@@ -50,7 +50,7 @@ def run_pick_place(model, data, idx, kin, task, rates, seed, on_tick=None) -> di
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", type=Path, default=Path("results/phase1_grasp.mp4"))
+    ap.add_argument("--out", type=Path, default=Path("results/scene_grasp_clip.mp4"))
     ap.add_argument("--seeds", type=int, nargs="+", default=[3, 11])
     args = ap.parse_args()
     task, rates = load_config("task.yaml"), load_config("rates.yaml")

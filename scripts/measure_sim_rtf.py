@@ -2,7 +2,7 @@
 """Measure the simulator's real-time factor from /sim/clock (sim must be running).
 
     ros2 launch hand_teleop_bringup sim.launch.py headless:=true &
-    python3 scripts/measure_sim_rtf.py --seconds 30 --out results/phase2_rtf.txt
+    python3 scripts/measure_sim_rtf.py --seconds 30 --out results/sim_rtf.txt
 """
 
 import argparse

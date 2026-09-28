@@ -6,4 +6,3 @@ opencv-python==4.11.0.86
 scipy==1.15.3
 PyYAML>=5.4
 pytest>=6.2
-# Learning stack (torch, lerobot) is pinned when phase 7 starts.
