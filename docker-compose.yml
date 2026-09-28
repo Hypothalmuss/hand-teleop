@@ -1,0 +1,25 @@
+# Webcam hand teleop in Docker. Prefer docker/run.sh, which sets the variables below, allows X
+# access and adds the NVIDIA override when the host has an NVIDIA GPU.
+services:
+  teleop:
+    image: hand-teleop:latest
+    build: .
+    # Default bridge network: DDS stays inside the container, isolated from other robots on the LAN.
+    environment:
+      DISPLAY: ${DISPLAY:-:0}
+      HAND_TELEOP_CONFIG: /ws/config
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    group_add:
+      - "${VIDEO_GID:-44}"
+    devices:
+      - "${VIDEO_DEVICE:-/dev/video0}:/dev/video0"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./config:/ws/config            # calibration persists on the host
+      - ./results:/ws/results
+      - ./recordings:/ws/recordings
+    # Host IPC lets X11 windows use shared memory (MIT-SHM); without it every camera frame is
+    # copied through the X socket and tracking drops to ~20 fps.
+    ipc: host
+    stdin_open: true
+    tty: true

@@ -66,9 +66,12 @@ def _nodes(context):
                                        "show_window": arg("window") == "true"}, sim_time],
                           remappings=SIM_TIME_REMAPS))
     console = arg("console")
-    if console == "terminal":
+    if console in ("terminal", "xterm"):
+        # xterm inherits our environment (used in Docker); gnome-terminal needs a wrapper.
+        prefix = "xterm -title keyboard_console -geometry 90x6 -e" if console == "xterm" \
+            else terminal_prefix()
         nodes.append(Node(package="teleop_console", executable="keyboard_console",
-                          prefix=terminal_prefix(), parameters=[{"config_dir": cfg}]))
+                          prefix=prefix, parameters=[{"config_dir": cfg}]))
     else:
         nodes.append(LogInfo(msg="keyboard console: run `ros2 run teleop_console "
                                  "keyboard_console` in another terminal (or console:=terminal)"))
@@ -85,7 +88,8 @@ def generate_launch_description():
         DeclareLaunchArgument("video", default_value="", description="offline hand input"),
         DeclareLaunchArgument("loop_video", default_value="false"),
         DeclareLaunchArgument("hand", default_value="webcam", description="webcam | fake"),
-        DeclareLaunchArgument("console", default_value="none", description="none | terminal"),
+        DeclareLaunchArgument("console", default_value="none",
+                              description="none | terminal | xterm"),
         DeclareLaunchArgument("demo_view", default_value="false"),
         DeclareLaunchArgument("window", default_value="true",
                               description="camera window with the hand overlay"),

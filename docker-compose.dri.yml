@@ -1,0 +1,8 @@
+# Intel / AMD GPUs: hardware Mesa rendering through /dev/dri. Added by docker/run.sh when the host
+# has /dev/dri and no NVIDIA runtime.
+services:
+  teleop:
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "${RENDER_GID:-109}"

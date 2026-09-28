@@ -1,0 +1,8 @@
+# NVIDIA GPU rendering (needs the NVIDIA Container Toolkit). Added automatically by docker/run.sh.
+services:
+  teleop:
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+      __GLX_VENDOR_LIBRARY_NAME: nvidia

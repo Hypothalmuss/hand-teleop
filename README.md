@@ -82,6 +82,29 @@ ros2 launch hand_teleop_bringup teleop.launch.py console:=terminal
 No webcam yet? Train with a spirit hand: `ros2 launch hand_teleop_bringup teleop.launch.py hand:=fake`.
 Offline input: `video:=clip.mp4`. Hide the camera window: `window:=false`.
 
+## 🧳 Travel light (Docker)
+
+To bend on any PC with only Docker and a webcam (no ROS or Python setup):
+
+```bash
+git clone https://github.com/Hypothalmuss/hand-teleop.git && cd hand-teleop
+docker/run.sh build          # once, ~5 min (2.8 GB image)
+docker/run.sh setup-hands    # once: raise your RIGHT hand
+docker/run.sh calibrate      # ~30 s; saved to config/ on the host
+docker/run.sh teleop         # MuJoCo viewer + camera window + keyboard console (xterm)
+docker/run.sh record 60      # teleop + 60 s split-screen demo -> results/demo_<time>.mp4
+```
+
+Also: `docker/run.sh fake` (no webcam), `console` (console in this terminal), `test`, `shell`.
+
+- **Host needs:** Docker with Compose v2, an X11 desktop (Wayland sessions work through XWayland),
+  and a webcam (`VIDEO_DEVICE=/dev/video2 docker/run.sh teleop` picks another one).
+- **GPU:** the NVIDIA Container Toolkit is used automatically if installed. Otherwise Intel/AMD
+  GPUs render through `/dev/dri`, or MuJoCo falls back to software rendering (real time holds,
+  but the sim cameras and demo view drop to ~5 fps).
+- `config/`, `results/` and `recordings/` are mounted from the repo, so calibration and videos stay
+  on the host with your user's ownership. ROS traffic stays inside the container.
+
 ## 🌀 Bending forms
 
 | Form | Effect |

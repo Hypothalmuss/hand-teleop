@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 (2026-09-28)
+
+- Docker: `Dockerfile`, `docker-compose.yml` (+ NVIDIA and `/dev/dri` overrides) and
+  `docker/run.sh` (build, setup-hands, calibrate, teleop, record, console, fake, test, shell).
+  Webcam and X11 passthrough; calibration and videos stay on the host. All 63 tests pass in the
+  container; tracking and rendering performance match native.
+- `console:=xterm` launch option (the console window inherits the environment, for containers).
+
 ## 1.0.0 (2026-09-28)
 
 First standalone release: webcam hand teleoperation of a simulated UR5e + Robotiq 2F-85.
